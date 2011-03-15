@@ -49,18 +49,26 @@ class Scheduler:
 		self.cost_new_mentor_online = 0.0
 		self.cost_uw_mentor_online = 0.0
 
-
 		#Database
 		self.conn = None
 
 		#peform initialization
 		self.load_config()
+		print("Config Loaded")
 		self.validate_config()
+		print("Config Valid")
 		self.init_db()
+		print("DB initialize")
 		self.load_weights()
+		print("Weights Loaded")
 		self.load_courses()
+		print("Courses Loaded")
 		self.load_mentors()
+		print("Mentors Loaded")
 		self.gen_views()
+		print("Assignment scores calculated")
+		self.find_schedules()
+		print("Schedule Found")
 
 	def load_config(self):
 		"""Loads configuration data from self.conf_file into local fields"""
@@ -91,7 +99,6 @@ class Scheduler:
 			#weights
 			for i in range(1,8):
 				self.cost_timepref[i] = conf.getfloat('weights','cost_timepref_%i'%i)
-
 
 			self.cost_timepref_none = conf.getfloat('weights','cost_timepref_none')
 			self.cost_timepref_nopref = conf.getfloat('weights','cost_timepref_nopref')
@@ -168,6 +175,9 @@ class Scheduler:
 			#TODO
 			self.conn = sqlite3.connect(':memory:')
 
+		self.conn.row_factory = sqlite3.Row #enable fetching columns by name and index
+
+		#load sql schema from file
 		c = self.conn.cursor()
 		c.executescript( open('schema.sql').read())
 
@@ -417,7 +427,57 @@ class Scheduler:
 
 	def find_schedules(self):
 		courses = self.conn.cursor()
-		#courses.execute("SELECT course_id
+		assignments = self.conn.cursor()
+		schedule = self.conn.cursor()
 
+		schedule.execute("CREATE TABLE schedule ( assn_id int)")
+		self.conn.commit()
+
+		courses.execute("SELECT course_id FROM courses ORDER BY RANDOM()")
+		for course in courses:
+			print("Finding assignment for course %i" % (course['course_id'],))
+			assignments.execute("SELECT rowid,* FROM assignments WHERE course_id = ? ORDER BY cost", (course['course_id'],))
+			for assignment in assignments:
+				#is assignment valid?
+				schedule.execute("""
+					SELECT (COUNT(A.mentor_id) + 1) > min(A.slots_available)
+					FROM schedule S JOIN assignments A ON A.rowid = S.assn_id
+					WHERE A.mentor_id = ?
+					GROUP BY A.mentor_id""", (assignment['mentor_id'],))
+				row = schedule.fetchone()
+				if row is not None:
+					if row[0]: continue #INVALID out of slots for this mentor
+					
+					#return TRUE if invalid
+					schedule.execute("""
+						SELECT
+							CASE
+								WHEN time_id == :time_id THEN true
+								WHEN time_type == 'WEB' OR :time_type == 'WEB' THEN false
+								WHEN
+									(M AND :M) OR
+									(T AND :T) OR
+									(W AND :W) OR
+									(R AND :R) OR
+									(F AND :F)
+								THEN
+									CASE
+										WHEN start_time < :start_time THEN :start_time < end_time
+										OTHERWISE start_time < :end_time
+									END
+								OTHERWISE FALSE
+							END
+						FROM schedule S JOIN assignments A ON A.mentor_id = S.mentor_id
+						WHERE A.mentor_id = :mentor_id
+						GROUP BY A.mentor_id""", dict(assignment))
+
+					row = schedule.fetchone()
+					if row is not None and row[0]:
+						continue
+				#made it this far without hitting any continues, so it's valid add it to the table"
+				print("Using assignment %i for course %i" % (course['course_id'],assignment['rowid']))
+				schedule.execute("INSERT INTO schedule (assn_id) VALUES (?)", (assignment['rowid'],))
+				self.conn.commit()
+				break
 
 sched = Scheduler('SINQ_survey.conf')
