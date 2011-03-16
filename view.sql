@@ -4,15 +4,14 @@ SELECT
 	M.mentor_id,
 	C.course_id,
 	T.*,
-	
-	coalesce(TWV.value,:time_cost_nopref) + -- Time Cost
-	coalesce(ThWV.value,:theme_cost_nopref) + -- Theme Cost
-	coalesce(FWV.value,:faculty_cost_nopref) + -- Faculty Cost
-	-- online/hybrid costs
-	CASE WHEN C.online_hybrid AND NOT M.online_hybrid THEN :unwilling_mentor_online /*unwilling mentor*/ ELSE 0.0 END +
-	CASE WHEN C.online_hybrid AND NOT M.returning THEN :cost_new_mentor_online /*untrained mentor*/ ELSE 0.0 END
-	AS cost
-	
+		coalesce(TWV.value,:time_cost_nopref) + -- Time Cost
+		coalesce(ThWV.value,:theme_cost_nopref) + -- Theme Cost
+		coalesce(FWV.value,:faculty_cost_nopref) + -- Faculty Cost
+		-- online/hybrid costs
+		CASE WHEN C.online_hybrid AND NOT M.online_hybrid THEN :unwilling_mentor_online /*unwilling mentor*/ ELSE 0.0 END +
+		CASE WHEN C.online_hybrid AND NOT M.returning THEN :cost_new_mentor_online /*untrained mentor*/ ELSE 0.0 END
+	AS cost,
+	M.slots_available
 FROM mentors M
 JOIN courses C ON
 	(C.preassn_mentor_id IS NULL OR M.mentor_id = C.preassn_mentor_id) AND
