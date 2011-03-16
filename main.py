@@ -52,7 +52,7 @@ class Scheduler:
 		#Database
 		self.conn = None
 
-		#peform initialization
+		#peform Load config, find schedule, output schedule
 		self.load_config()
 		print("Config Loaded")
 		self.validate_config()
@@ -69,6 +69,9 @@ class Scheduler:
 		print("Assignment scores calculated")
 		self.find_schedules()
 		print("Schedule Found")
+		#self.load_db()
+		self.output_schedule()
+		print("Schedule Output")
 
 	def load_config(self):
 		"""Loads configuration data from self.conf_file into local fields"""
@@ -163,6 +166,12 @@ class Scheduler:
 		if len(indexes) != len(set(indexes)):
 			print('Bad idx_* configuration')
 			sys.exit(0)
+
+	def load_db(self):
+		"""Use instead of init_db() for testing"""
+		self.conn = sqlite3.connect('scheduler.db') #save to file for debugging
+
+		self.conn.row_factory = sqlite3.Row #enable fetching columns by name and index
 
 	def init_db(self):
 		"""Initialize the local sqlite db from schema.sql in memory"""
@@ -429,55 +438,138 @@ class Scheduler:
 		courses = self.conn.cursor()
 		assignments = self.conn.cursor()
 		schedule = self.conn.cursor()
+		blacklist = self.conn.cursor()
 
 		schedule.execute("CREATE TABLE schedule ( assn_id int)")
-		self.conn.commit()
+		blacklist.execute("CREATE TABLE blacklist ( assn_id int)")
 
-		courses.execute("SELECT course_id FROM courses ORDER BY RANDOM()")
-		for course in courses:
-			print("Finding assignment for course %i" % (course['course_id'],))
-			assignments.execute("SELECT rowid,* FROM assignments WHERE course_id = ? ORDER BY cost", (course['course_id'],))
-			for assignment in assignments:
-				#is assignment valid?
-				schedule.execute("""
-					SELECT (COUNT(A.mentor_id) + 1) > min(A.slots_available)
-					FROM schedule S JOIN assignments A ON A.rowid = S.assn_id
-					WHERE A.mentor_id = ?
-					GROUP BY A.mentor_id""", (assignment['mentor_id'],))
-				row = schedule.fetchone()
-				if row is not None:
-					if row[0]: continue #INVALID out of slots for this mentor
-					
-					#return TRUE if invalid
+		#get number of courses
+		courses.execute("SELECT count(course_id) FROM courses")
+		num_courses = courses.fetchone()[0]
+		courses_left_unassigned = num_courses
+
+		#add pre-assigned mentors
+		schedule.execute("""
+		INSERT INTO schedule ( assn_id )
+		SELECT A.rowid FROM assignments A
+		JOIN courses C ON C.course_id = A.course_id
+		WHERE C.preassn_mentor_id IS NOT NULL
+		""")
+		courses_left_unassigned -= schedule.rowcount
+		self.conn.commit()
+		backtrack_count = 0
+
+		while courses_left_unassigned > 0:
+			#get courses that haven't been assigned yet in random order
+			courses.execute("""
+				SELECT C.course_id
+				FROM courses C
+				WHERE C.course_id NOT IN (
+					SELECT A.course_id
+					FROM assignments A
+					JOIN schedule S ON S.assn_id = A.rowid
+				)
+			""")
+
+			for course in courses:
+				#find assignments (that aren't in blacklist) for current course, best first
+				assignments.execute("SELECT rowid,* FROM assignments WHERE course_id = ? AND rowid NOT IN (SELECT assn_id FROM blacklist) ORDER BY cost", (course['course_id'],))
+				assignment_found=False
+				first_assn=None
+
+				#iterate through until a valid assignment is found
+				#(the first valid assignment will be the best valid assignment)
+				for assignment in assignments:
+					if first_assn is None:
+						first_assn = assignment
+
+					#is assignment valid?
 					schedule.execute("""
-						SELECT
-							CASE
-								WHEN time_id == :time_id THEN true
-								WHEN time_type == 'WEB' OR :time_type == 'WEB' THEN false
-								WHEN
-									(M AND :M) OR
-									(T AND :T) OR
-									(W AND :W) OR
-									(R AND :R) OR
-									(F AND :F)
-								THEN
-									CASE
-										WHEN start_time < :start_time THEN :start_time < end_time
-										OTHERWISE start_time < :end_time
-									END
-								OTHERWISE FALSE
-							END
-						FROM schedule S JOIN assignments A ON A.mentor_id = S.mentor_id
-						WHERE A.mentor_id = :mentor_id
-						GROUP BY A.mentor_id""", dict(assignment))
+						SELECT (COUNT(A.mentor_id) + 1) > min(A.slots_available)
+						FROM schedule S JOIN assignments A ON A.rowid = S.assn_id
+						WHERE A.mentor_id = ?
+						GROUP BY A.mentor_id""", (assignment['mentor_id'],))
 
 					row = schedule.fetchone()
-					if row is not None and row[0]:
-						continue
-				#made it this far without hitting any continues, so it's valid add it to the table"
-				print("Using assignment %i for course %i" % (course['course_id'],assignment['rowid']))
-				schedule.execute("INSERT INTO schedule (assn_id) VALUES (?)", (assignment['rowid'],))
-				self.conn.commit()
-				break
+					if row is not None:
+						if row[0]: continue #INVALID out of slots for this mentor
+						#return 1/TRUE if invalid
+						schedule.execute("""
+							SELECT
+								CASE
+									WHEN time_id == :time_id THEN 1
+									WHEN time_type == 'WEB' OR :time_type == 'WEB' THEN 0
+									WHEN
+										(M AND :M) OR
+										(T AND :T) OR
+										(W AND :W) OR
+										(R AND :R) OR
+										(F AND :F)
+									THEN
+										CASE
+											WHEN time_start < :time_start THEN :time_start < time_stop
+											ELSE time_start < :time_stop
+										END
+									ELSE 0
+								END
+							FROM schedule S JOIN assignments A ON A.rowid = S.assn_id
+							WHERE A.mentor_id = :mentor_id
+							GROUP BY A.mentor_id""", dict(assignment))
+
+						row = schedule.fetchone()
+						if row is not None and row[0]:
+							continue
+					#made it this far without hitting any continues, so it's valid add it to the table"
+					#print("Using assignment %i for course %i" % (course['course_id'],assignment['rowid']))
+					schedule.execute("INSERT INTO schedule (assn_id) VALUES (?)", (assignment['rowid'],))
+					self.conn.commit()
+					assignment_found=True
+					courses_left_unassigned -= 1
+					break
+
+				if not assignment_found:
+					#add mentor
+					backtrack_count += 1
+
+					#we tried the assignment it didn't work, so add it to the blacklist
+					blacklist.execute("""
+						INSERT INTO blacklist (assn_id) SELECT rowid FROM assignments
+						WHERE mentor_id = ? AND rowid IN (SELECT assn_id FROM schedule)""",
+						(first_assn['mentor_id'],))
+					schedule.execute("DELETE FROM schedule WHERE assn_id IN (SELECT assn_id FROM blacklist)")
+					self.conn.commit()
+					courses_left_unassigned += schedule.rowcount
+
+	def output_schedule(self):
+		c = self.conn.cursor()
+		writer = csv.writer(open(self.output_file,'w'))
+
+		c.execute(open("output1.sql",'r').read())
+		header_written = False
+		for row in c:
+			if not header_written:
+				writer.writerow(row.keys())
+				header_written=True
+			writer.writerow(list(row))
+
+		writer.writerow([])
+
+		c.execute("""
+		SELECT
+			SUM(cost) AS "TOTAL COST",
+			AVG(cost) AS "AVERAGE COST"
+		FROM schedule S
+		JOIN assignments A ON S.assn_id = A.rowid
+		""")
+		row = c.fetchone()
+
+		writer.writerow(("TOTAL COST",row['TOTAL COST']))
+		writer.writerow(("AVERAGE COST",row['AVERAGE COST']))
+		
+		#TODO
+		#writer.writerow([])
+		
+		#writer.writerow()
+
 
 sched = Scheduler('SINQ_survey.conf')
