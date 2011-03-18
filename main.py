@@ -1,10 +1,9 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 import sys,os,os.path
 try:
-	import configparser
+	import ConfigParser as configparser
 except ImportError:
 	import ConfigParser as configparser
-
 import csv
 import sqlite3
 import re
@@ -18,7 +17,7 @@ class Scheduler:
 		self.survey_file =          ''
 		self.output_file =          ''
 
-		#self.num_configurations =   conf.getint('scheduler','num_configurations') #TODO
+		self.num_configurations =   0
 		self.idx_submissionKey =    0
 		self.idx_name =             0
 		self.idx_email=             0
@@ -35,14 +34,14 @@ class Scheduler:
 		self.idx_facultyPrefStop =  0
 
 		#weights
-		self.cost_timepref = [0] * 8
+		self.cost_timepref = {}
 		self.cost_timepref_none = 0.0
 		self.cost_timepref_nopref = 0.0
 
-		self.cost_themepref = [0] * 8
+		self.cost_themepref = {}
 		self.cost_themepref_none = 0.0
 
-		self.cost_facultypref = [0] * 8
+		self.cost_facultypref = {}
 		self.cost_facultypref_none = 0.0
 		self.cost_facultypref_nopref = 0.0
 
@@ -67,9 +66,9 @@ class Scheduler:
 		print("Mentors Loaded")
 		self.gen_views()
 		print("Assignment scores calculated")
-		self.find_schedules()
+		self.monte_carlo(100)
 		print("Schedule Found")
-		#self.load_db()
+		#self.refine_schedule()
 		self.output_schedule()
 		print("Schedule Output")
 
@@ -83,7 +82,13 @@ class Scheduler:
 			self.survey_file =          conf.get('scheduler','survey_file')
 			self.output_file =          conf.get('scheduler','output_file')
 
-			#self.num_configurations =   conf.getint('scheduler','num_configurations') #TODO
+			#adjust paths to be relative to conf file
+			conf_dir = os.path.dirname(self.conf_file)
+			self.courses_file = os.path.join(conf_dir,self.courses_file)
+			self.survey_file = os.path.join(conf_dir,self.survey_file)
+			self.output_file = os.path.join(conf_dir,self.output_file)
+
+			self.num_configurations =   conf.getint('scheduler','num_configurations')
 			self.idx_submissionKey =    conf.getint('scheduler','idx_submissionKey')
 			self.idx_name =             conf.getint('scheduler','idx_name')
 			self.idx_email=             conf.getint('scheduler','idx_email')
@@ -175,7 +180,7 @@ class Scheduler:
 
 	def init_db(self):
 		"""Initialize the local sqlite db from schema.sql in memory"""
-		if True:
+		if False:
 			#for Testing
 			if os.path.exists('scheduler.db'):
 				os.remove('scheduler.db')
@@ -223,7 +228,7 @@ class Scheduler:
 			sql = sql_ps % sql_tup
 			sql_ins = (object_name,) + tuple(extra_columns.values())
 			c.execute(sql,sql_ins)
-				
+			
 			self.conn.commit()
 			return c.lastrowid
 		else:
@@ -243,12 +248,10 @@ class Scheduler:
 			c.execute("INSERT INTO times (time_name,time_type) VALUES (?,'WEB')",
 				(time_name,))
 		else:
-			#print (time_name)
 			match = re.match(r'([MTWRF]+) (\d+) *- *(\d+)(/HYBRID)?',time_name)
 
 			if match is None:
 				print(time_name)
-			#print(match)
 			days = match.group(1)
 			time_start = int(match.group(2))
 			time_stop = int(match.group(3))
@@ -256,7 +259,6 @@ class Scheduler:
 				time_type = 'NORMAL'
 			else:
 				time_type = 'HYBRID'
-			#print(time_type)
 			sql = '''
 			INSERT INTO times
 				(time_name,time_type,M,T,W,R,F,time_start,time_stop)
@@ -295,7 +297,8 @@ class Scheduler:
 	def load_courses(self):
 		"""Load courses from self.courses_file into db"""
 		courses = csv.DictReader(open(self.courses_file,'r'))
-		
+
+		self.num_courses = 0
 		for course in courses:
 			course_data = {
 				'crn': course['CRN'],
@@ -317,6 +320,7 @@ class Scheduler:
 					") VALUES ("
 					+ ','.join([':'+x for x in course_data.keys()])+
 				")",course_data)
+			self.num_courses+=1
 		self.conn.commit()
 
 	def load_mentors(self):
@@ -434,14 +438,38 @@ class Scheduler:
 				'cost_new_mentor_online': self.cost_new_mentor_online
 			})
 
-	def find_schedules(self):
+	def monte_carlo(self,num_iteratations):
+		"""run find_schedule multiple times and keep the one with the lowest score"""
+		c = self.conn.cursor()
+		c.execute("CREATE TABLE IF NOT EXISTS best_schedule (assn_id INT)")
+		old_best_score = None
+
+		for i in range(0,num_iteratations):
+			sys.stdout.write("%05i/%05i\r"%(i,num_iteratations))
+			sys.stdout.flush()
+			
+			self.find_schedule()
+			c.execute("SELECT sum(cost) FROM assignments WHERE rowid IN (SELECT assn_id FROM schedule)")
+			score = c.fetchone()[0]
+			if old_best_score is None or score < old_best_score:
+				c.execute("DELETE FROM best_schedule")
+				c.execute("INSERT INTO best_schedule SELECT assn_id FROM schedule")
+				old_best_score = score
+		c.execute('DROP TABLE IF EXISTS schedule')
+		c.execute('ALTER TABLE best_schedule RENAME TO schedule')
+		self.conn.commit()
+
+	def find_schedule(self):
+		"""Find a valid (semi-randomly generated), but not optimum schedule and save it in the table `schedule`"""
 		courses = self.conn.cursor()
 		assignments = self.conn.cursor()
 		schedule = self.conn.cursor()
 		blacklist = self.conn.cursor()
 
-		schedule.execute("CREATE TABLE schedule ( assn_id int)")
-		blacklist.execute("CREATE TABLE blacklist ( assn_id int)")
+		schedule.execute("CREATE TABLE IF NOT EXISTS schedule ( assn_id int)")
+		blacklist.execute("CREATE TABLE IF NOT EXISTS blacklist ( assn_id int)")
+		blacklist.execute("DELETE FROM blacklist")
+		blacklist.execute("DELETE FROM schedule")
 
 		#get number of courses
 		courses.execute("SELECT count(course_id) FROM courses")
@@ -473,54 +501,28 @@ class Scheduler:
 
 			for course in courses:
 				#find assignments (that aren't in blacklist) for current course, best first
-				assignments.execute("SELECT rowid,* FROM assignments WHERE course_id = ? AND rowid NOT IN (SELECT assn_id FROM blacklist) ORDER BY cost", (course['course_id'],))
+				assignments.execute("""
+					SELECT rowid,*
+					FROM assignments
+					WHERE
+						course_id = ? AND
+						rowid NOT IN (
+							SELECT assn_id FROM blacklist
+						)
+					ORDER BY cost
+				""", (course['course_id'],))
+
 				assignment_found=False
 				first_assn=None
-
 				#iterate through until a valid assignment is found
 				#(the first valid assignment will be the best valid assignment)
 				for assignment in assignments:
 					if first_assn is None:
 						first_assn = assignment
 
-					#is assignment valid?
-					schedule.execute("""
-						SELECT (COUNT(A.mentor_id) + 1) > min(A.slots_available)
-						FROM schedule S JOIN assignments A ON A.rowid = S.assn_id
-						WHERE A.mentor_id = ?
-						GROUP BY A.mentor_id""", (assignment['mentor_id'],))
+					if not self.is_assn_valid(assignment): continue
 
-					row = schedule.fetchone()
-					if row is not None:
-						if row[0]: continue #INVALID out of slots for this mentor
-						#return 1/TRUE if invalid
-						schedule.execute("""
-							SELECT
-								CASE
-									WHEN time_id == :time_id THEN 1
-									WHEN time_type == 'WEB' OR :time_type == 'WEB' THEN 0
-									WHEN
-										(M AND :M) OR
-										(T AND :T) OR
-										(W AND :W) OR
-										(R AND :R) OR
-										(F AND :F)
-									THEN
-										CASE
-											WHEN time_start < :time_start THEN :time_start < time_stop
-											ELSE time_start < :time_stop
-										END
-									ELSE 0
-								END
-							FROM schedule S JOIN assignments A ON A.rowid = S.assn_id
-							WHERE A.mentor_id = :mentor_id
-							GROUP BY A.mentor_id""", dict(assignment))
-
-						row = schedule.fetchone()
-						if row is not None and row[0]:
-							continue
 					#made it this far without hitting any continues, so it's valid add it to the table"
-					#print("Using assignment %i for course %i" % (course['course_id'],assignment['rowid']))
 					schedule.execute("INSERT INTO schedule (assn_id) VALUES (?)", (assignment['rowid'],))
 					self.conn.commit()
 					assignment_found=True
@@ -540,7 +542,51 @@ class Scheduler:
 					self.conn.commit()
 					courses_left_unassigned += schedule.rowcount
 
+	def refine_schedule(self):
+		pass #TODO
+
+	def is_assn_valid(self,assignment):
+		"""Checks to see if schedule + assn (an object) is still a valid schedule"""
+		c = self.conn.cursor()
+		c.execute("""
+			SELECT (COUNT(A.mentor_id) + 1) > min(A.slots_available)
+			FROM schedule S JOIN assignments A ON A.rowid = S.assn_id
+			WHERE A.mentor_id = ?
+			GROUP BY A.mentor_id""", (assignment['mentor_id'],))
+
+		row = c.fetchone()
+		if row is not None:
+			if row[0]: return False #INVALID out of slots for this mentor
+			#return 1/TRUE if invalid
+			c.execute("""
+				SELECT
+					CASE
+						WHEN time_id == :time_id THEN 1
+						WHEN time_type == 'WEB' OR :time_type == 'WEB' THEN 0
+						WHEN
+							(M AND :M) OR
+							(T AND :T) OR
+							(W AND :W) OR
+							(R AND :R) OR
+							(F AND :F)
+						THEN
+							CASE
+								WHEN time_start < :time_start THEN :time_start < time_stop
+								ELSE time_start < :time_stop
+							END
+						ELSE 0
+					END
+				FROM schedule S JOIN assignments A ON A.rowid = S.assn_id
+				WHERE A.mentor_id = :mentor_id
+				GROUP BY A.mentor_id""", dict(assignment))
+
+			row = c.fetchone()
+			if row is not None and row[0]:
+				return False
+		return True
+
 	def output_schedule(self):
+		"""Output the value of the `schedule` table to a csv"""
 		c = self.conn.cursor()
 		writer = csv.writer(open(self.output_file,'w'))
 
@@ -555,21 +601,22 @@ class Scheduler:
 		writer.writerow([])
 
 		c.execute("""
-		SELECT
-			SUM(cost) AS "TOTAL COST",
-			AVG(cost) AS "AVERAGE COST"
-		FROM schedule S
-		JOIN assignments A ON S.assn_id = A.rowid
+			SELECT
+				SUM(cost) AS "TOTAL COST",
+				AVG(cost) AS "AVERAGE COST"
+			FROM schedule S
+			JOIN assignments A ON S.assn_id = A.rowid
 		""")
 		row = c.fetchone()
 
 		writer.writerow(("TOTAL COST",row['TOTAL COST']))
 		writer.writerow(("AVERAGE COST",row['AVERAGE COST']))
-		
-		#TODO
-		#writer.writerow([])
-		
-		#writer.writerow()
 
+		writer.writerow(())
 
-sched = Scheduler('SINQ_survey.conf')
+		pass #TODO
+
+if argv[1] is None:
+	pass #TODO
+
+sched = Scheduler(sys.argv[1])
