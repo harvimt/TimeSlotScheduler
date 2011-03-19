@@ -1,12 +1,9 @@
 #!/usr/bin/python2
-import sys,os,os.path
+import sys,os,os.path,string,re,csv,sqlite3,inflect
 try:
 	import ConfigParser as configparser
 except ImportError:
 	import ConfigParser as configparser
-import csv
-import sqlite3
-import re
 
 class Scheduler:
 	def __init__(self,conf_file):
@@ -66,7 +63,8 @@ class Scheduler:
 		print("Mentors Loaded")
 		self.gen_views()
 		print("Assignment scores calculated")
-		self.monte_carlo(100)
+		print('Trying %i configurations' % self.num_configurations)
+		self.monte_carlo(self.num_configurations)
 		print("Schedule Found")
 		#self.refine_schedule()
 		self.output_schedule()
@@ -168,7 +166,9 @@ class Scheduler:
 			self.idx_facultyPrefStop
 		))
 
-		if len(indexes) != len(set(indexes)):
+		indexes_sans_neg1 = [ index for index in indexes if index != -1 ]
+
+		if len(indexes_sans_neg1) != len(set(indexes_sans_neg1)):
 			print('Bad idx_* configuration')
 			sys.exit(0)
 
@@ -186,7 +186,6 @@ class Scheduler:
 				os.remove('scheduler.db')
 			self.conn = sqlite3.connect('scheduler.db') #save to file for debugging
 		else:
-			#TODO
 			self.conn = sqlite3.connect(':memory:')
 
 		self.conn.row_factory = sqlite3.Row #enable fetching columns by name and index
@@ -251,7 +250,7 @@ class Scheduler:
 			match = re.match(r'([MTWRF]+) (\d+) *- *(\d+)(/HYBRID)?',time_name)
 
 			if match is None:
-				print(time_name)
+				raise('time_name %s not parseable' % time_name)
 			days = match.group(1)
 			time_start = int(match.group(2))
 			time_stop = int(match.group(3))
@@ -290,7 +289,7 @@ class Scheduler:
 		c = self.conn.cursor()
 		for table_name, weight_arr in zip(table_names, weight_arrs):
 			table_name += '_weight_value'
-			for weight, value in enumerate(weight_arr):
+			for weight, value in weight_arr.items():
 				c.execute(sql % table_name, (weight, value))
 		self.conn.commit()
 
@@ -358,17 +357,21 @@ class Scheduler:
 					'odin_id': mentor[self.idx_ODIN_ID]
 				}
 
-				if mentor[self.idx_twoSlots] == "1":
+				if self.idx_twoSlots != -1 and mentor[self.idx_twoSlots] == "1":
 					mentor_data['num_slots'] = 2
 				else:
 					mentor_data['num_slots'] = 1
 
-				if mentor[self.idx_owningDept] == '':
+				if self.idx_owningDept == -1 or mentor[self.idx_owningDept] == '':
 					mentor_data['owning_department_id'] = None
 				else:
 					mentor_data['owning_department_id'] = int(mentor[self.idx_owningDept])
 
-				mentor_data['online_hybrid'] = (mentor[self.idx_onlineHybrid] == '1')
+				if self.idx_onlineHybrid == -1:
+					mentor_data['online_hybrid'] = False
+				else:
+					mentor_data['online_hybrid'] = (mentor[self.idx_onlineHybrid] == '1')
+				
 				mentor_data['new_returning'] =  (mentor[self.idx_newReturning] == '1')
 
 				#insert mentor_data into db
@@ -429,14 +432,16 @@ class Scheduler:
 	def gen_views(self):
 		"""Actually 'materialized' views (create table as select)"""
 		c = self.conn.cursor()
-		c.execute(open('view.sql').read(), 
-			{
+		c.execute(open('view.sql').read(),{
 				'time_cost_nopref': self.cost_timepref_none,
 				'theme_cost_nopref': self.cost_themepref_none,
 				'faculty_cost_nopref': self.cost_facultypref_none,
 				'unwilling_mentor_online': self.cost_uw_mentor_online,
 				'cost_new_mentor_online': self.cost_new_mentor_online
 			})
+
+		c.execute('UPDATE assignments SET cost = time_cost + theme_cost + faculty_cost + unwilling_cost + untrained_cost')
+		self.conn.commit()
 
 	def monte_carlo(self,num_iteratations):
 		"""run find_schedule multiple times and keep the one with the lowest score"""
@@ -497,6 +502,7 @@ class Scheduler:
 					FROM assignments A
 					JOIN schedule S ON S.assn_id = A.rowid
 				)
+				ORDER BY RANDOM()
 			""")
 
 			for course in courses:
@@ -509,20 +515,23 @@ class Scheduler:
 						rowid NOT IN (
 							SELECT assn_id FROM blacklist
 						)
-					ORDER BY cost
+					ORDER BY cost ASC
 				""", (course['course_id'],))
 
 				assignment_found=False
 				first_assn=None
 				#iterate through until a valid assignment is found
 				#(the first valid assignment will be the best valid assignment)
+				tries = 0
 				for assignment in assignments:
+					tries += 1
 					if first_assn is None:
 						first_assn = assignment
 
 					if not self.is_assn_valid(assignment): continue
 
 					#made it this far without hitting any continues, so it's valid add it to the table"
+					#DEBUG print "found assignment (%i,%i) after %i tries at cost %f " % (assignment['course_id'],assignment['mentor_id'],tries,assignment['cost'])
 					schedule.execute("INSERT INTO schedule (assn_id) VALUES (?)", (assignment['rowid'],))
 					self.conn.commit()
 					assignment_found=True
@@ -532,6 +541,7 @@ class Scheduler:
 				if not assignment_found:
 					#add mentor
 					backtrack_count += 1
+					print 'backtracking %i ' % backtrack_count
 
 					#we tried the assignment it didn't work, so add it to the blacklist
 					blacklist.execute("""
@@ -589,6 +599,7 @@ class Scheduler:
 		"""Output the value of the `schedule` table to a csv"""
 		c = self.conn.cursor()
 		writer = csv.writer(open(self.output_file,'w'))
+		p = inflect.engine()
 
 		c.execute(open("output1.sql",'r').read())
 		header_written = False
@@ -596,7 +607,16 @@ class Scheduler:
 			if not header_written:
 				writer.writerow(row.keys())
 				header_written=True
-			writer.writerow(list(row))
+			
+			row_list = []
+			for k,v in zip(row.keys(),row):
+				if k == 'COST':
+					v  = '%0.2f' % v
+				else:
+					v = str(v)
+				row_list.append(v)
+
+			writer.writerow(row_list)
 
 		writer.writerow([])
 
@@ -614,9 +634,50 @@ class Scheduler:
 
 		writer.writerow(())
 
-		pass #TODO
+		template=string.Template(open('output2.sql').read())
 
-if argv[1] is None:
+		writer.writerow(('CHOICE','FREQ','PERCENT'))
+		tables = {
+				'time': {'default': 9},
+				'theme': {'default': 4},
+				'faculty': {'default': 4},
+		}
+		for table,settings in tables.items():
+			sql = template.substitute(table=table)
+			c.execute(sql,settings)
+			header_written = False
+			for row in c:
+				row_list = []
+				for k,v in zip(row.keys(),row):
+					if k == 'CHOICE':
+						if v == 9:
+							v = 'unpreferred %s' % table
+						else:
+							v = '%s %s choice' % (p.ordinal(v),table)
+					elif k == 'PERCENT':
+						v  = '%0.02f%%' % v
+					else:
+						v = str(v)
+					row_list.append(v)
+
+				writer.writerow(row_list)
+			writer.writerow([])
+
+		c.execute('''
+			SELECT
+				sum(CASE WHEN C.online_hybrid AND NOT M.returning THEN 1 ELSE 0 END) new_mentors,
+				sum(CASE WHEN C.online_hybrid AND NOT M.online_hybrid THEN 1 ELSE 0 END) unwilling,
+				COUNT(C.course_id) num_courses
+			FROM schedule S
+			JOIN assignments A ON A.rowid = S.assn_id
+			JOIN courses C ON A.course_id = C.course_id
+			JOIN mentors M ON M.mentor_id = A.mentor_id
+		''')
+		row = c.fetchone()
+		writer.writerow(('new mentors teaching online/hybrid',row['new_mentors'],'%0.02f%%' % (row['new_mentors']/row['num_courses'])))
+		writer.writerow(('unwilling mentors teaching online/hybrid',row['unwilling'],'%0.02f%%' % (row['unwilling']/row['num_courses'])))
+
+if sys.argv[1] is None:
 	pass #TODO
 
 sched = Scheduler(sys.argv[1])
