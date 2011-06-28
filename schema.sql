@@ -65,7 +65,7 @@ CREATE TABLE theme_weight_value (
 CREATE TABLE times (
 	time_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 	time_name varchar NOT NULL UNIQUE,
-	time_type varchar NOT NULL, -- WEB
+	time_type varchar NOT NULL, -- WEB,HYBRID, or NORMAL
 	-- days of the week
 	M bool,
 	T bool,

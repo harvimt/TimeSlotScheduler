@@ -552,6 +552,42 @@ class Scheduler:
 					self.conn.commit()
 					courses_left_unassigned += schedule.rowcount
 
+	def iterative_deepening():
+		class MentorSlot:
+			def __init__(self,mentor_id,slot_num):
+				self.mentor_id = mentor_id
+				self.slot_num = slot_num
+
+		class Course:
+			def __init__(self,course_id,M,T,W,R,F,start_time,stop_time,is_web):
+				self.course_id = course_id
+				self.M,self.T,self.W,self.R,self.F = M,T,W,R,F
+				self.start_time = start_time
+				self.stop_time = stop_time
+				self.is_web = is_web
+
+		#get data out of sql
+		c = self.conn.cursor()
+		c.execute("SELECT mentor_id, slots_available FROM mentors")
+		mentor_slots = []
+		for mentor in c:
+			for slot in range(0,mentor['slots_available']):
+				mentor_slots.append(MentorSlot(mentor['mentor_id']),slot))
+
+		NO_ASSIGNMENT = Course(None,False,False,False,False,False,None,None,False)
+		courses = [NO_ASSIGNMENT]
+		c.execute("SELECT course_id, M,T,W,R,F, time_start, time_stop, time_type == 'WEB' as is_web"+
+				  "FROM courses C JOIN times T on C.time_id = T.time_id")
+		for course in c:
+			courses.append(Course(
+				course['course_id'],
+				course['M'],course['T'],course['W'],course['R'],course['F'],
+				course['time_start'],course['time_stop'],
+				course['is_web']
+			)
+
+
+
 	def refine_schedule(self):
 		pass #TODO
 
