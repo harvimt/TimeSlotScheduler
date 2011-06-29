@@ -1,12 +1,12 @@
 #!/usr/bin/python2
-import sys,os,os.path,string,re,csv,sqlite3,inflect
+import sys,os,os.path,string,re,csv,sqlite3,inflect,copy
 try:
 	import ConfigParser as configparser
 except ImportError:
 	import ConfigParser as configparser
 
 class Scheduler:
-	def __init__(self,conf_file):
+	def __init__(self, conf_file):
 		self.conf_file = conf_file
 
 		##Config File
@@ -63,8 +63,9 @@ class Scheduler:
 		print("Mentors Loaded")
 		self.gen_views()
 		print("Assignment scores calculated")
-		print('Trying %i configurations' % self.num_configurations)
-		self.monte_carlo(self.num_configurations)
+		#print('Trying %i configurations' % self.num_configurations)
+		#self.monte_carlo(self.num_configurations)
+		self.iterative_deepening()
 		print("Schedule Found")
 		#self.refine_schedule()
 		self.output_schedule()
@@ -552,7 +553,7 @@ class Scheduler:
 					self.conn.commit()
 					courses_left_unassigned += schedule.rowcount
 
-	def iterative_deepening():
+	def iterative_deepening(self):
 		class MentorSlot:
 			def __init__(self,mentor_id,slot_num):
 				self.mentor_id = mentor_id
@@ -566,17 +567,30 @@ class Scheduler:
 				self.stop_time = stop_time
 				self.is_web = is_web
 
+		costs = {}
+		class Assignment:
+			def __init__(self, course, mentor_slot):
+				self.course = course
+				self.mentor_slot = mentor_slot
+
+			def cost(self):
+				if self.course == NO_ASSIGNMENT:
+					return 0
+				else:
+					return costs[(self.course.course_id,self.mentor_slot.mentor_id)]
+
 		#get data out of sql
 		c = self.conn.cursor()
 		c.execute("SELECT mentor_id, slots_available FROM mentors")
+
 		mentor_slots = []
 		for mentor in c:
 			for slot in range(0,mentor['slots_available']):
-				mentor_slots.append(MentorSlot(mentor['mentor_id']),slot))
+				mentor_slots.append(MentorSlot(mentor['mentor_id'],slot))
 
 		NO_ASSIGNMENT = Course(None,False,False,False,False,False,None,None,False)
 		courses = [NO_ASSIGNMENT]
-		c.execute("SELECT course_id, M,T,W,R,F, time_start, time_stop, time_type == 'WEB' as is_web"+
+		c.execute("SELECT course_id, M,T,W,R,F, time_start, time_stop, time_type == 'WEB' as is_web "+
 				  "FROM courses C JOIN times T on C.time_id = T.time_id")
 		for course in c:
 			courses.append(Course(
@@ -584,12 +598,88 @@ class Scheduler:
 				course['M'],course['T'],course['W'],course['R'],course['F'],
 				course['time_start'],course['time_stop'],
 				course['is_web']
-			)
+			))
 
+		#calculate assignments
+		self.find_schedule() #seed with initial (TODO not with SQL)
+		print "Initial Schedule Found"
 
+		#get initial schedule out of SQL
+		schedule = []
+		c.execute("SELECT A.course_id, A.mentor_id "+
+				"FROM schedule S "+
+				"JOIN assignments A ON A.rowid = S.assn_id")
 
-	def refine_schedule(self):
-		pass #TODO
+		used_mentor_slots = [ ]
+
+		for assn in c:
+			mentor_slot = [ m for m in mentor_slots if m.mentor_id == assn['mentor_id'] ] [0]
+			course = [ co for co in courses if co.course_id == assn['course_id'] ] [0]
+			assignment = Assignment(course, mentor_slot)
+
+			used_mentor_slots.append(mentor_slot)
+			schedule.append(assignment)
+
+		unused_mentor_slots = [ m for m in mentor_slots if m not in used_mentor_slots]
+
+		for unused_mentor_slot in unused_mentor_slots:
+			assignment = Assignment(NO_ASSIGNMENT, unused_mentor_slot)
+			schedule.append(assignment)
+
+		#populate costs cache
+		c.execute("SELECT course_id, mentor_id, cost FROM assignments")
+		for assn_cost in c:
+			costs[(assn_cost['course_id'],assn_cost['mentor_id'])] = assn_cost['cost']
+
+		#sched_size = len(schedule)
+
+		def is_valid(schedule):
+			return True
+
+		def refine_schedule(schedule):
+			initial_cost = sum([assn.cost() for assn in schedule])
+			
+			go_again = True
+			while go_again:
+				go_again = False
+				new_schedule = [ copy.copy(assn) for assn in schedule ]
+				for assn1 in new_schedule:
+					for assn2 in [ assn for assn in schedule if assn != assn1 ]:
+						#if swapping assn1 and assn2 is valid and improves the cost
+						#then alter the schedule and recurse
+
+						new_cost = initial_cost - assn1.cost() - assn2.cost()
+						(assn1.course, assn2.course) = (assn2.course, assn1.course)
+						new_cost += assn1.cost() + assn2.cost()
+
+						if new_cost > initial_cost and is_valid(schedule):
+							go_again = True
+							break
+						else:
+							(assn1.course, assn2.course) = (assn2.course, assn1.course)
+					if go_again:
+						break
+
+			#we've reached a the end, meaning we traversed all pairs of assignments to swap the course
+			#and none of them were valid or better
+			#local maxima, call it good for now
+
+		refine_schedule(schedule)
+
+		#dump schedule back into sql
+		#c.execute("DELETE FROM schedule")
+		for assn in schedule:
+			if assn.course == NO_ASSIGNMENT:
+				pass
+				"""
+				c.execute(
+					"INSERT INTO schedule (assn_id) "+
+					"SELECT rowid FROM assignments WHERE mentor_id = :mentor_id AND course_id = :course_id ",
+					{
+						'course_id':assn.course_id,
+						'mentor_id':assn.mentor_id
+					})
+				"""
 
 	def is_assn_valid(self,assignment):
 		"""Checks to see if schedule + assn (an object) is still a valid schedule"""
@@ -666,7 +756,7 @@ class Scheduler:
 		row = c.fetchone()
 
 		writer.writerow(("TOTAL COST",row['TOTAL COST']))
-		writer.writerow(("AVERAGE COST",row['AVERAGE COST']))
+		writer.writerow(("AERAGE COST",row['AVERAGE COST']))
 
 		writer.writerow(())
 
