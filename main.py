@@ -1,5 +1,5 @@
 #!/usr/bin/python2
-import sys,os,os.path,string,re,csv,sqlite3,inflect,copy
+import sys,os,os.path,string,re,csv,sqlite3,inflect,copy,random
 try:
 	import ConfigParser as configparser
 except ImportError:
@@ -251,7 +251,10 @@ class Scheduler:
 			match = re.match(r'([MTWRF]+) (\d+) *- *(\d+)(/HYBRID)?',time_name)
 
 			if match is None:
-				raise('time_name %s not parseable' % time_name)
+				if time_name == 'HYBRID':
+					raise(Exception('Hybrid courses must still specify a time slot'))
+				else:
+					raise(Exception('time_name %s not parseable' % time_name))
 			days = match.group(1)
 			time_start = int(match.group(2))
 			time_stop = int(match.group(3))
@@ -542,7 +545,7 @@ class Scheduler:
 				if not assignment_found:
 					#add mentor
 					backtrack_count += 1
-					print 'backtracking %i ' % backtrack_count
+					print('backtracking %i ' % backtrack_count)
 
 					#we tried the assignment it didn't work, so add it to the blacklist
 					blacklist.execute("""
@@ -554,6 +557,11 @@ class Scheduler:
 					courses_left_unassigned += schedule.rowcount
 
 	def iterative_deepening(self):
+		class Mentor:
+			def __init__(self,mentor_id,num_slots):
+				self.mentor_id = mentor_id
+				self.num_slots = num_slots
+
 		class MentorSlot:
 			def __init__(self,mentor_id,slot_num):
 				self.mentor_id = mentor_id
@@ -584,7 +592,9 @@ class Scheduler:
 		c.execute("SELECT mentor_id, slots_available FROM mentors")
 
 		mentor_slots = []
+		mentors = []
 		for mentor in c:
+			mentors.append(Mentor(mentor['mentor_id'],mentor['slots_available']))
 			for slot in range(0,mentor['slots_available']):
 				mentor_slots.append(MentorSlot(mentor['mentor_id'],slot))
 
@@ -602,7 +612,7 @@ class Scheduler:
 
 		#calculate assignments
 		self.find_schedule() #seed with initial (TODO not with SQL)
-		print "Initial Schedule Found"
+		print("Initial Schedule Found")
 
 		#get initial schedule out of SQL
 		schedule = []
@@ -631,40 +641,106 @@ class Scheduler:
 		for assn_cost in c:
 			costs[(assn_cost['course_id'],assn_cost['mentor_id'])] = assn_cost['cost']
 
-		#sched_size = len(schedule)
-
 		def is_valid(schedule):
+			"""Check for overlapping mentor assignments in schedule"""
+
+			for mentor in mentors:
+				assns = [ assn for assn in schedule if assn.mentor_slot.mentor_id == mentor.mentor_id ]
+				for assn1 in assns:
+					for assn2 in [assn for assn in assns if assn != assn1]:
+						if  (assn1.course.M and assn2.course.M) or \
+							(assn1.course.T and assn2.course.T) or \
+							(assn1.course.W and assn2.course.W) or \
+							(assn1.course.R and assn2.course.R) or \
+							(assn1.course.F and assn2.course.F) :
+
+								if assn1.course.start_time == assn2.course.start_time and assn1.course.stop_time == assn2.course.stop_time:
+									return False
+								elif assn2.course.start_time > assn1.course.start_time:
+									if assn1.course.stop_time > assn2.course.start_time:
+										return False
+								else: #assn1.course.start_time < assn2.start_time
+									if assn2.course.stop_time > assn1.course.stop_time:
+										return False
 			return True
 
+		def copy_sched(schedule):
+			"""Copy The Schedule in a 2-deep shallow-ish copy"""
+			return [ copy.copy(assn) for assn in schedule ]
+
+		# This is where all the magic happens #
 		def refine_schedule(schedule):
-			initial_cost = sum([assn.cost() for assn in schedule])
+			"""Performs iterative deepening to refine a schedule"""
+
+			cur_sched = copy_sched(schedule)
+			cur_cost = sum([assn.cost() for assn in schedule])
+
+			best_sched = copy_sched(schedule)
+			best_cost = cur_cost
 			
-			go_again = True
-			while go_again:
+			num_swaps = 0
+			max_swaps = 50000
+
+			print("%i/%i\r" % (num_swaps,max_swaps)),
+			while num_swaps < max_swaps:
 				go_again = False
-				new_schedule = [ copy.copy(assn) for assn in schedule ]
+				new_schedule = copy_sched(cur_sched)
+
 				for assn1 in new_schedule:
-					for assn2 in [ assn for assn in schedule if assn != assn1 ]:
+					for assn2 in [ assn for assn in new_schedule if assn != assn1 ]:
 						#if swapping assn1 and assn2 is valid and improves the cost
 						#then alter the schedule and recurse
 
-						new_cost = initial_cost - assn1.cost() - assn2.cost()
+						new_cost = best_cost - assn1.cost() - assn2.cost()
 						(assn1.course, assn2.course) = (assn2.course, assn1.course)
 						new_cost += assn1.cost() + assn2.cost()
 
-						if new_cost > initial_cost and is_valid(schedule):
+						if new_cost < best_cost and is_valid(new_schedule):
+							cur_sched = best_sched = new_schedule
+							cur_cost = best_cost = new_cost
+
+							num_swaps += 1
+							print "%i/%i\r" % (num_swaps,max_swaps),
+
 							go_again = True
 							break
 						else:
 							(assn1.course, assn2.course) = (assn2.course, assn1.course)
+
 					if go_again:
 						break
+
+				if not go_again:
+					#perform a random swaps until a valid swap is found
+					found = False
+					while not found:
+						assn1, assn2 = random.sample(new_schedule,2)
+
+						new_cost = best_cost - assn1.cost() - assn2.cost()
+						(assn1.course, assn2.course) = (assn2.course, assn1.course)
+						new_cost += assn1.cost() + assn2.cost()
+
+						if is_valid(new_schedule):
+							cur_sched = new_schedule
+							cur_cost = new_cost
+
+							num_swaps += 1
+							print "%i/%i\r" % (num_swaps,max_swaps),
+
+							found = True
+							break
+						else:
+							(assn1.course, assn2.course) = (assn2.course, assn1.course)
+
+			return best_sched
 
 			#we've reached a the end, meaning we traversed all pairs of assignments to swap the course
 			#and none of them were valid or better
 			#local maxima, call it good for now
 
-		refine_schedule(schedule)
+		schedule = refine_schedule(schedule)
+		print
+
 
 		#dump schedule back into sql
 		#c.execute("DELETE FROM schedule")
@@ -756,7 +832,7 @@ class Scheduler:
 		row = c.fetchone()
 
 		writer.writerow(("TOTAL COST",row['TOTAL COST']))
-		writer.writerow(("AERAGE COST",row['AVERAGE COST']))
+		writer.writerow(("AVERAGE COST",row['AVERAGE COST']))
 
 		writer.writerow(())
 
