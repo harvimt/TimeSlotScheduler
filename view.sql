@@ -14,9 +14,9 @@ SELECT
 	0.0 AS cost
 
 FROM mentors M
-JOIN courses C ON
-	(C.preassn_mentor_id IS NULL OR M.mentor_id = C.preassn_mentor_id) AND
-	(M.owning_dept IS NULL OR M.owning_dept = C.dept_id)
+JOIN courses C -- ON
+-- (C.preassn_mentor_id IS NULL OR M.mentor_id = C.preassn_mentor_id) AND
+-- (M.owning_dept IS NULL OR M.owning_dept = C.dept_id)
 LEFT JOIN mentor_time_pref MTP ON MTP.mentor_id = M.mentor_id AND C.time_id = MTP.time_id
 LEFT JOIN time_weight_value TWV ON MTP.weight = TWV.weight
 LEFT JOIN mentor_theme_pref MThP ON MThP.mentor_id = M.mentor_id AND C.theme_id = MThP.theme_id
