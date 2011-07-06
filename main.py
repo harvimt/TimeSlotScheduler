@@ -45,6 +45,8 @@ class Scheduler:
 		self.cost_new_mentor_online = 0.0
 		self.cost_uw_mentor_online = 0.0
 
+		self.max_swaps = 0
+
 		#Database
 		self.conn = None
 
@@ -102,6 +104,8 @@ class Scheduler:
 			self.idx_themePrefStop =    conf.getint('scheduler','idx_themePrefStop')
 			self.idx_facultyPrefStart = conf.getint('scheduler','idx_facultyPrefStart')
 			self.idx_facultyPrefStop =  conf.getint('scheduler','idx_facultyPrefStop')
+
+			self.max_swaps =  conf.getint('scheduler','max_swaps')
 
 			#weights
 			for i in range(1,8):
@@ -341,16 +345,33 @@ class Scheduler:
 				header_row = mentor
 
 				for idx in range(self.idx_timePrefStart,self.idx_timePrefStop+1):
-					name = header_row[idx].split("...-")[-1]
-					time_idx_2_id[idx] = self.get_time(name)
-
+					try:
+						name = header_row[idx].split("...-")[-1]
+						time_idx_2_id[idx] = self.get_time(name)
+					except IndexError:
+						if idx not in range(0,len(header_row)):
+							raise Exception('Problem with idx_timePrefStart and idx_timePrefStop, a column in the range was not found')
+						else:
+							print >>sys.stderr, "There was a problem, parsing a time header column for data, This column (\"%s\") will be ignored" % header_row[idx]
 				for idx in range(self.idx_themePrefStart,self.idx_themePrefStop+1):
-					name = header_row[idx].split("...-")[-1]
-					theme_idx_2_id[idx] = self.get_id('theme',name)
+					try:
+						name = header_row[idx].split("...-")[-1]
+						theme_idx_2_id[idx] = self.get_id('theme',name)
+					except IndexError:
+						if idx not in range(0,len(header_row)):
+							raise Exception('Problem with idx_themePrefStart and idx_themePrefStop, a column in the range was not found or ')
+						else:
+							print >>sys.stderr, "There was a problem, parsing a theme header column for data, This column (\"%s\") will be ignored" % header_row[idx]
 
 				for idx in range(self.idx_facultyPrefStart,self.idx_facultyPrefStop+1):
-					name = header_row[idx].split("...-")[-1]
-					faculty_idx_2_id[idx] = self.get_id('faculty',name,add_s=False)
+					try:
+						name = header_row[idx].split("...-")[-1]
+						faculty_idx_2_id[idx] = self.get_id('faculty',name,add_s=False)
+					except IndexError:
+						if idx not in range(0,len(header_row)):
+							raise Exception('Problem with idx_facultyPrefStart and idx_facultyPrefStop, a column in the range was not found')
+						else:
+							print >>sys.stderr, "There was a problem, parsing a faculty header column for data, This column (\"%s\") will be ignored" % header_row[idx]
 
 			elif i > 1:
 				#load data from csv into mentor_data
@@ -679,7 +700,7 @@ class Scheduler:
 			best_cost = cur_cost
 			
 			num_swaps = 0
-			max_swaps = 50000
+			max_swaps = self.max_swaps
 
 			print("%i/%i\r" % (num_swaps,max_swaps)),
 			while num_swaps < max_swaps:
