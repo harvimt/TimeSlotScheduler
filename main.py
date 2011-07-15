@@ -297,8 +297,7 @@ class Scheduler:
 		c = self.conn.cursor()
 		for table_name, weight_arr in zip(table_names, weight_arrs):
 			table_name += '_weight_value'
-			for weight, value in weight_arr.items():
-				c.execute(sql % table_name, (weight, value))
+			c.executemany(sql % table_name, weight_arr.items())
 		self.conn.commit()
 
 	def load_courses(self):
@@ -306,6 +305,8 @@ class Scheduler:
 		courses = csv.DictReader(open(self.courses_file,'r'))
 
 		self.num_courses = 0
+		sql = None
+		course_datas = []
 		for course in courses:
 			course_data = {
 				'crn': course['CRN'],
@@ -320,14 +321,17 @@ class Scheduler:
 				'online_hybrid': (course['Online Hybrid'] == '1')
 			}
 
-			c = self.conn.cursor()
-			c.execute(
-					"INSERT INTO courses ("
-					+ ','.join(course_data.keys()) +
-					") VALUES ("
-					+ ','.join([':'+x for x in course_data.keys()])+
-				")",course_data)
+			if sql is None:
+				course_keys = ','.join(course_data.keys())
+				course_keys_vars = ','.join([':'+x for x in course_data.keys()])
+				sql = "INSERT INTO courses (" + course_keys + ") VALUES ( " + course_keys_vars + ")"
+
 			self.num_courses+=1
+			course_datas.append(course_data)
+
+
+		c = self.conn.cursor()
+		c.executemany(sql, course_datas)
 		self.conn.commit()
 
 	def load_mentors(self):
@@ -421,38 +425,39 @@ class Scheduler:
 				mentor_id = c.lastrowid
 				self.conn.commit()
 
+				datas = []
+				sql = 'INSERT INTO mentor_time_pref (mentor_id,time_id,weight) VALUES (?,?,?)'
 				for idx in range(self.idx_timePrefStart,self.idx_timePrefStop+1):
 					if mentor[idx] in ('','0'): continue
 					weight = 8 - int(mentor[idx])
 					time_id = time_idx_2_id[idx]
 
-					c.execute(
-						'''INSERT INTO mentor_time_pref (mentor_id,time_id,weight)
-						VALUES (?,?,?)''',
-						(mentor_id,time_id,weight)
-					)
+					datas.append((mentor_id,time_id,weight))
 
+				c.executemany(sql,datas)
+
+				sql = 'INSERT INTO mentor_theme_pref (mentor_id,theme_id,weight) VALUES (?,?,?)'
+				datas = []
 				for idx in range(self.idx_themePrefStart,self.idx_themePrefStop+1):
 					if mentor[idx] in ('','0'): continue
 					weight = 8 - int(mentor[idx])
 					if weight not in range(1,8):
 						weight = 0 #TODO nopref
 					theme_id = theme_idx_2_id[idx]
-					c.execute(
-						'''INSERT INTO mentor_theme_pref (mentor_id,theme_id,weight)
-						VALUES (?,?,?)''',
-						(mentor_id,theme_id,weight)
-					)
+					datas.append((mentor_id,theme_id,weight))
+
+				c.executemany(sql,datas)
+
+				sql = 'INSERT INTO mentor_faculty_pref (mentor_id,faculty_id,weight) VALUES (?,?,?)'
+				datas=[]
 
 				for idx in range(self.idx_facultyPrefStart,self.idx_facultyPrefStop+1):
 					if mentor[idx] in ('','0'): continue
 					weight = 8 - int(mentor[idx])
 					faculty_id = faculty_idx_2_id[idx]
-					c.execute(
-						'''INSERT INTO mentor_faculty_pref (mentor_id,faculty_id,weight)
-						VALUES (?,?,?)''',
-						(mentor_id,faculty_id,weight)
-					)
+					datas.append((mentor_id,faculty_id,weight))
+
+				c.executemany(sql,datas)
 
 	def gen_views(self):
 		"""Actually 'materialized' views (create table as select)"""
@@ -631,12 +636,24 @@ class Scheduler:
 				course['is_web']
 			))
 
+		#populate costs cache
+		c.execute("SELECT course_id, mentor_id, cost FROM assignments")
+		for assn_cost in c:
+			costs[(assn_cost['course_id'],assn_cost['mentor_id'])] = assn_cost['cost']
+
+		#Find Initial Schedule
+		schedule = []
 		#calculate assignments
-		self.find_schedule() #seed with initial (TODO not with SQL)
+		#for course in courses:
+			#slots_for_course = [ m for m in mentor_slots if m.course == course ]
+			#slots_for_course = sorted(slots_for_course, lambda x,y: cmp(x.course.cost(), y.course.cost()))
+			#for mentor_slot in slots_for_course:
+				#mentor_slot
+
+		self.find_schedule() #schedule saved to `schedule` table
 		print("Initial Schedule Found")
 
 		#get initial schedule out of SQL
-		schedule = []
 		c.execute("SELECT A.course_id, A.mentor_id "+
 				"FROM schedule S "+
 				"JOIN assignments A ON A.rowid = S.assn_id")
@@ -657,10 +674,24 @@ class Scheduler:
 			assignment = Assignment(NO_ASSIGNMENT, unused_mentor_slot)
 			schedule.append(assignment)
 
-		#populate costs cache
-		c.execute("SELECT course_id, mentor_id, cost FROM assignments")
-		for assn_cost in c:
-			costs[(assn_cost['course_id'],assn_cost['mentor_id'])] = assn_cost['cost']
+		def is_assn_valid(assn1,assns):
+			"""Check if assn overlaps with any of the times in assns"""
+			for assn2 in assns:
+				if  (assn1.course.M and assn2.course.M) or \
+					(assn1.course.T and assn2.course.T) or \
+					(assn1.course.W and assn2.course.W) or \
+					(assn1.course.R and assn2.course.R) or \
+					(assn1.course.F and assn2.course.F) :
+
+						if assn1.course.start_time == assn2.course.start_time and assn1.course.stop_time == assn2.course.stop_time:
+							return False
+						elif assn2.course.start_time > assn1.course.start_time:
+							if assn1.course.stop_time > assn2.course.start_time:
+								return False
+						else: #assn1.course.start_time < assn2.start_time
+							if assn2.course.stop_time > assn1.course.stop_time:
+								return False
+			return True
 
 		def is_valid(schedule):
 			"""Check for overlapping mentor assignments in schedule"""
@@ -668,21 +699,9 @@ class Scheduler:
 			for mentor in mentors:
 				assns = [ assn for assn in schedule if assn.mentor_slot.mentor_id == mentor.mentor_id ]
 				for assn1 in assns:
-					for assn2 in [assn for assn in assns if assn != assn1]:
-						if  (assn1.course.M and assn2.course.M) or \
-							(assn1.course.T and assn2.course.T) or \
-							(assn1.course.W and assn2.course.W) or \
-							(assn1.course.R and assn2.course.R) or \
-							(assn1.course.F and assn2.course.F) :
+					if not is_assn_valid(assn1, [assn for assn in assns if assn != assn1]):
+						return False
 
-								if assn1.course.start_time == assn2.course.start_time and assn1.course.stop_time == assn2.course.stop_time:
-									return False
-								elif assn2.course.start_time > assn1.course.start_time:
-									if assn1.course.stop_time > assn2.course.start_time:
-										return False
-								else: #assn1.course.start_time < assn2.start_time
-									if assn2.course.stop_time > assn1.course.stop_time:
-										return False
 			return True
 
 		def copy_sched(schedule):
@@ -707,29 +726,26 @@ class Scheduler:
 				go_again = False
 				new_schedule = copy_sched(cur_sched)
 
-				for assn1 in new_schedule:
-					for assn2 in [ assn for assn in new_schedule if assn != assn1 ]:
-						#if swapping assn1 and assn2 is valid and improves the cost
-						#then alter the schedule and recurse
+				for assn1, assn2 in set([ frozenset((assn1,assn2)) for assn1 in new_schedule for assn2 in new_schedule if assn2 != assn1]):
 
-						new_cost = best_cost - assn1.cost() - assn2.cost()
-						(assn1.course, assn2.course) = (assn2.course, assn1.course)
-						new_cost += assn1.cost() + assn2.cost()
+					#if swapping assn1 and assn2 is valid and improves the cost
+					#then alter the schedule and recurse
 
-						if new_cost < best_cost and is_valid(new_schedule):
-							cur_sched = best_sched = new_schedule
-							cur_cost = best_cost = new_cost
+					new_cost = best_cost - assn1.cost() - assn2.cost()
+					(assn1.course, assn2.course) = (assn2.course, assn1.course)
+					new_cost += assn1.cost() + assn2.cost()
 
-							num_swaps += 1
-							print "%i/%i\r" % (num_swaps,max_swaps),
+					if new_cost < best_cost and is_valid(new_schedule):
+						cur_sched = best_sched = new_schedule
+						cur_cost = best_cost = new_cost
 
-							go_again = True
-							break
-						else:
-							(assn1.course, assn2.course) = (assn2.course, assn1.course)
+						num_swaps += 1
+						print "%i/%i\r" % (num_swaps,max_swaps),
 
-					if go_again:
+						go_again = True
 						break
+					else:
+						(assn1.course, assn2.course) = (assn2.course, assn1.course)
 
 				if not go_again:
 					#perform a random swaps until a valid swap is found
