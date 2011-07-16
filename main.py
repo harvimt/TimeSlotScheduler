@@ -641,39 +641,6 @@ class Scheduler:
 		for assn_cost in c:
 			costs[(assn_cost['course_id'],assn_cost['mentor_id'])] = assn_cost['cost']
 
-		#Find Initial Schedule
-		schedule = []
-		#calculate assignments
-		#for course in courses:
-			#slots_for_course = [ m for m in mentor_slots if m.course == course ]
-			#slots_for_course = sorted(slots_for_course, lambda x,y: cmp(x.course.cost(), y.course.cost()))
-			#for mentor_slot in slots_for_course:
-				#mentor_slot
-
-		self.find_schedule() #schedule saved to `schedule` table
-		print("Initial Schedule Found")
-
-		#get initial schedule out of SQL
-		c.execute("SELECT A.course_id, A.mentor_id "+
-				"FROM schedule S "+
-				"JOIN assignments A ON A.rowid = S.assn_id")
-
-		used_mentor_slots = [ ]
-
-		for assn in c:
-			mentor_slot = [ m for m in mentor_slots if m.mentor_id == assn['mentor_id'] ] [0]
-			course = [ co for co in courses if co.course_id == assn['course_id'] ] [0]
-			assignment = Assignment(course, mentor_slot)
-
-			used_mentor_slots.append(mentor_slot)
-			schedule.append(assignment)
-
-		unused_mentor_slots = [ m for m in mentor_slots if m not in used_mentor_slots]
-
-		for unused_mentor_slot in unused_mentor_slots:
-			assignment = Assignment(NO_ASSIGNMENT, unused_mentor_slot)
-			schedule.append(assignment)
-
 		def is_assn_valid(assn1,assns):
 			"""Check if assn overlaps with any of the times in assns"""
 			for assn2 in assns:
@@ -707,6 +674,52 @@ class Scheduler:
 		def copy_sched(schedule):
 			"""Copy The Schedule in a 2-deep shallow-ish copy"""
 			return [ copy.copy(assn) for assn in schedule ]
+
+		def find_initial_schedule_sql():
+			schedule = []
+
+			#self.find_schedule() #schedule saved to `schedule` table
+			#return
+
+			#get initial schedule out of SQL
+			c.execute("SELECT A.course_id, A.mentor_id "+
+					"FROM schedule S "+
+					"JOIN assignments A ON A.rowid = S.assn_id")
+
+			used_mentor_slots = [ ]
+
+			for assn in c:
+				mentor_slot = [ m for m in mentor_slots if m.mentor_id == assn['mentor_id'] ] [0]
+				course = [ co for co in courses if co.course_id == assn['course_id'] ] [0]
+				assignment = Assignment(course, mentor_slot)
+
+				used_mentor_slots.append(mentor_slot)
+				schedule.append(assignment)
+
+			unused_mentor_slots = [ m for m in mentor_slots if m not in used_mentor_slots]
+
+			for unused_mentor_slot in unused_mentor_slots:
+				assignment = Assignment(NO_ASSIGNMENT, unused_mentor_slot)
+				schedule.append(assignment)
+
+			return schedule
+
+		
+		def find_initial_schedule():
+			schedule = []
+			slots_available = copy.copy(mentor_slots)
+			#calculate assignments
+			for course in courses:
+				assns_for_course = [ Assignment(course,slot) for slot in slots_available ]
+				assns_for_course = sorted(assns_for_course, lambda x,y: cmp(x.cost(), y.cost()))
+
+				for assn in assns_for_course:
+					if is_assn_valid(assn,schedule):
+						schedule.append(assn)
+						slots_available.remove(assn.mentor_slot)
+						break
+
+			return schedule
 
 		# This is where all the magic happens #
 		def refine_schedule(schedule):
@@ -775,11 +788,12 @@ class Scheduler:
 			#and none of them were valid or better
 			#local maxima, call it good for now
 
+		print("Initial Schedule Found")
+		schedule = find_initial_schedule()
 		schedule = refine_schedule(schedule)
 		print
 
-
-		#dump schedule back into sql
+		#dump schedule into sql
 		#c.execute("DELETE FROM schedule")
 		for assn in schedule:
 			if assn.course == NO_ASSIGNMENT:
