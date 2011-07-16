@@ -37,19 +37,22 @@ CREATE TABLE mentors (
 CREATE TABLE mentor_time_pref (
 	mentor_id int NOT NULL REFERENCES mentors,
 	time_id int NOT NULL REFERENCES times,
-	weight int NOT NULL REFERENCES time_weight_value
+	weight int NOT NULL REFERENCES time_weight_value,
+	PRIMARY KEY(mentor_id, time_id)
 );
 
 CREATE TABLE mentor_theme_pref (
 	mentor_id INTEGER NOT NULL REFERENCES mentors,
 	theme_id int NOT NULL REFERENCES themes,
-	weight int NOT NULL REFERENCES theme_weight_value
+	weight int NOT NULL REFERENCES theme_weight_value,
+	PRIMARY KEY(mentor_id, theme_id)
 );
 
 CREATE TABLE mentor_faculty_pref (
 	mentor_id INTEGER NOT NULL,
 	faculty_id int NOT NULL,
-	weight int NOT NULL REFERENCES faculty_weight_value
+	weight int NOT NULL REFERENCES faculty_weight_value,
+	PRIMARY KEY (mentor_id, faculty_id)
 );
 
 CREATE TABLE themes (
@@ -103,4 +106,8 @@ CREATE TABLE time_weight_value (
 CREATE TABLE departments (
 	department_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 	department_name varchar NOT NULL UNIQUE
+);
+
+CREATE TABLE schedule (
+	assn_id INTEGER
 );

@@ -791,22 +791,18 @@ class Scheduler:
 		print("Initial Schedule Found")
 		schedule = find_initial_schedule()
 		schedule = refine_schedule(schedule)
-		print
 
 		#dump schedule into sql
-		#c.execute("DELETE FROM schedule")
+		c.execute("DELETE FROM schedule")
 		for assn in schedule:
-			if assn.course == NO_ASSIGNMENT:
-				pass
-				"""
+			if assn.course != NO_ASSIGNMENT:
 				c.execute(
 					"INSERT INTO schedule (assn_id) "+
 					"SELECT rowid FROM assignments WHERE mentor_id = :mentor_id AND course_id = :course_id ",
 					{
-						'course_id':assn.course_id,
-						'mentor_id':assn.mentor_id
+						'course_id':assn.course.course_id,
+						'mentor_id':assn.mentor_slot.mentor_id
 					})
-				"""
 
 	def is_assn_valid(self,assignment):
 		"""Checks to see if schedule + assn (an object) is still a valid schedule"""
