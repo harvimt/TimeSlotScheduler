@@ -1,0 +1,36 @@
+<html
+	xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:py="http://genshi.edgewall.org/"
+	xmlns:xi="http://www.w3.org/2001/XInclude"
+	xmlns:form="http://ns.discorporate.us/flatland/genshi"
+	>
+	<xi:include href="layout.html"/>
+
+	<head>
+		<title>Foo Form</title>
+	</head>
+
+	<body>
+		<form
+			form:bind="form"
+			action="${submit_url}"
+			method="POST">
+
+		  <form:with auto_domid="on" auto_for="on">
+			<dl>
+			<label py:with="el=form.foo" form:bind="el">
+				<dt>${el.label}: </dt><dd><input form:bind="el" /></dd>
+			</label>
+
+			<label py:with="el=form.bar" form:bind="el">
+				<dt>${el.label}: </dt><dd><input form:bind="el" /></dd>
+			</label>
+			</dl>
+
+			<input type="hidden" form:bind="form.csrf_token"/>
+
+			<button type="submit">Submit</button>
+		  </form:with>
+		</form>
+	</body>
+</html>

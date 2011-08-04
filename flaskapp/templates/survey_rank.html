@@ -1,0 +1,60 @@
+<!--!  vim: syn=genshi -->
+<!--!
+Survey Rank Preference Question
+$question: the question name
+$prefs : list of preferences as dict: {'id': <numeric id of the pref>, 'name': 'User-readable label for the pref'}
+$numToRank : number of ranked preferences to return
+-->
+<html
+	xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:py="http://genshi.edgewall.org/"
+	xmlns:xi="http://www.w3.org/2001/XInclude"
+	>
+	<xi:include href="layout.html"/>
+
+	<head>
+		<title>Survey Question &mdash; ${question}</title>
+		${jquery()}
+		${jquery_ui()}
+		<script type="text/javascript">
+			var numToRank = ${numToRank};
+			//<!--
+			function sort_receive(event,ui){
+				if($('#ranked_prefs').sortable('toArray').length > numToRank){
+					$(ui.sender).sortable('cancel');
+				}
+			}
+			$(document).ready(function(){
+				$('#prefs_to_rank, #ranked_prefs').sortable({
+					connectWith: '.pref_ranking'
+				}).disableSelection();
+				$('#ranked_prefs').bind('sortreceive',sort_receive);
+				$('#submit_btn').click(function(event){
+					alert(
+						$('#ranked_prefs')
+						.sortable('toArray')
+						.map(function(s){return s.substr(5);})
+						.join(',')
+					);
+				});
+				$('#ranked_prefs').height(30 * numToRank);
+				$('#prefs_to_rank').height($('#prefs_to_rank').height());
+			});
+			//-->
+		</script>
+	</head>
+
+	<body>
+		<h2 id="rank_explanation">
+			Drag your top ${numToRank} preferences from the left-hand box to the right-hand box, in the order of preference.
+		</h2>
+		<div id="prefs_to_rank" class="pref_ranking">
+			<div py:for="pref in prefs" id="pref_${pref.id}">${pref.name}</div>
+		</div>
+		<div id="ranked_prefs_num_placeholder">
+			<div py:for="i in range(numToRank)" style="top:${31*i}px" class="num_placeholder">#${i+1}</div>
+			<div id="ranked_prefs" class="pref_ranking"/>
+		</div>
+		<button id="submit_btn">Submit</button>
+	</body>
+</html>

@@ -1,0 +1,53 @@
+<!--!  vim: syn=genshi -->
+<!--!
+vim: syn=genshi
+Survey Weight Preference Question
+$question: the question name
+$prefs : list of preferences as dict: {'id': <numeric id of the pref>, 'name': <User-readable label for the pref>}
+$numWeights : rate each pref from 0 to numWeights
+-->
+<html
+	xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:py="http://genshi.edgewall.org/"
+	xmlns:xi="http://www.w3.org/2001/XInclude"
+	>
+	<xi:include href="layout.html"/>
+
+	<head>
+		<title>Survey Question &mdash; ${question}</title>
+		${jquery()}
+		${jquery_ui()}
+		<script type="text/javascript">
+			//<!--
+			$(document).ready(function(){
+			});
+			//-->
+		</script>
+	</head>
+
+	<body>
+		<h2 id="weight_explanation">
+			Rate each preference from 1 to ${numWeights}. 1 being the best, and ${numWeights} being the worst.
+			<py:if test="numWeights % 2 != 0"><br/>With ${numWeights/2 + 1} being meh.</py:if>
+		</h2>
+		<div>
+			<form>
+				<table>
+					<tr>
+						<th class="pref_name">Preference</th>
+						<th py:for="weight_num in range(numWeights)">${weight_num+1}</th>
+					</tr>
+					<tr py:for="pref in prefs">
+						<th class="pref_name">${pref.name}</th>
+						<td py:for="weight_num in range(numWeights)" 
+							py:choose="weight_num == numWeights/2">
+
+							<input py:when="1" selected="true" type="radio" name="pref_${pref.id}" value="${weight_num}"/>
+							<input py:otherwise="" type="radio" name="pref_${pref.id}" value="${weight_num}"/>
+						</td>
+					</tr>
+				</table>
+			</form>
+		</div>
+	</body>
+</html>
