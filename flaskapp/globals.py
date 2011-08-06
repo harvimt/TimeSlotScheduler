@@ -1,7 +1,8 @@
 import random, string
 
 from flaskapp import app
-from flask import session, request, url_for, redirect
+from flask import session, request, url_for, redirect, g
+from sqlalchemy.orm import sessionmaker
 
 @app.before_request
 def csrf_protect():
@@ -15,3 +16,8 @@ def generate_csrf_token(force=True):
 		session['_csrf_token'] = \
 			''.join([random.choice(string.letters + string.digits) for i in xrange(0,32)])
 	return session['_csrf_token']
+
+def make_sql_session():
+	sess = sessionmaker(bind=g)
+
+

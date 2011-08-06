@@ -1,15 +1,24 @@
 import sqlalchemy
-from sqlalchemy import Column, Integer, String, Boolean, Time
+from sqlalchemy import Column, Integer, String, Boolean, Time, Enum, Sequence, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref
 Base = declarative_base()
 
-#assert(sqlalchemy.version >= 0.7.0)
+class User(Base):
+	__tablename__ = 'users'
+
+	user_name = Column(String(32), primary_key = True) #CAS/Odin id
+	user_type = Column(Enum('admin','user'))
+
+##--##
 
 class PrefType(Base):
 	__tablename__ = 'pref_types'
+
 	pref_type_id = Column(Integer, Sequence('pref_type_id_seq'), primary_key = True)
 	pref_type_name = Column(String(32))
+
+##--##
 
 class Pref(Base):
 	__tablename__ = 'prefs'
@@ -19,8 +28,16 @@ class Pref(Base):
 
 	name = Column(String(32))
 
+	discriminator = Column('type', String(50))
+	__mapper_args__ = {'polymorphic_on': discriminator}
+
+##--##
+
 class Time(Pref):
 	__tablename__ = 'times'
+	__mapper_args__ = {'polymorphic_identity': 'times'}
+
+	time_id = Column('pref_id', Integer, ForeignKey('prefs.pref_id'), primary_key=True)
 
 	#Days of the week
 	M = Column(Boolean)
@@ -34,6 +51,8 @@ class Time(Pref):
 	start_time = Column(Time)
 	stop_time = Column(Time)
 
+##--##
+
 class Mentor(Base):
 	__tablename__ = 'mentors'
 
@@ -46,6 +65,8 @@ class Mentor(Base):
 	max_slots = Column(Integer)
 
 	email = Column(String(128))
+
+##--##
 
 class Course(Base):
 	__tablename__ = 'courses'

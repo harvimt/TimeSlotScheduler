@@ -1,3 +1,9 @@
 #!/usr/bin/env python2
+import sys
 from flaskapp import app
-app.run(debug=True)
+
+if len(sys.argv) == 2 and sys.argv[1] == 'install':
+	from flaskapp import install
+	install()
+else:
+	app.run(debug=True)
