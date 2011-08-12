@@ -88,6 +88,8 @@ def display_user(username):
 	"""Display the user's info"""
 	require_auth('admin')
 
+	flash('foo','info')
+
 	user = sess.query(User).get(username)
 	oinfo = get_odin(username)
 	user.email = oinfo['email']
@@ -98,6 +100,8 @@ def display_user(username):
 @app.route('/user/<username>/edit')
 def edit_user(username):
 	"""Edit the user's info"""
+
+	user = sess.query(User).get(username)
 	return 'Edit info for ' + username
 
 @app.route('/user/<username>/edit/submit',methods=['POST'])

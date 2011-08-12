@@ -1,7 +1,7 @@
 import random, string
 
 from flaskapp import app
-from flask import session, request, url_for, redirect
+from flask import session, request, url_for, redirect, get_flashed_messages
 from sqlalchemy.orm import sessionmaker
 
 from database import db_session as sess
@@ -50,6 +50,8 @@ def template_globals():
 	else:
 		username = None
 
+
 	return dict(
-		username=username
+		username = username,
+		messages = get_flashed_messages(with_categories = True)
 	)

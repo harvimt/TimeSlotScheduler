@@ -33,6 +33,11 @@
 					</py:choose>
 				</div>
 			</div>
+			<div id="messages" py:if="len(messages) > 0">
+				<div py:for="category, message in messages" class="message-${category}">
+					${message}
+				</div>
+			</div>
 			<div id="content">
 				${select('*|text()')}
 			</div>
