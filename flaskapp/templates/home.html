@@ -1,0 +1,30 @@
+<!--! vim: set syn=genshi: !-->
+<!--!
+Home Page
+$user_type = String, 'admin', 'user', or 'anon'
+-->
+<html
+	xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:py="http://genshi.edgewall.org/"
+	xmlns:xi="http://www.w3.org/2001/XInclude"
+	>
+	<xi:include href="layout.html"/>
+
+	<head>
+		<title>Mentor Scheduler Home-Page</title>
+	</head>
+
+	<body py:choose="user_type">
+		<div py:when="'admin'">
+			Welcome Administrator<br/>
+			<a href="/admin">Administrate Survey</a>
+		</div>
+		<div py:when="'user'">
+			Welcome Mentor<br/>
+			<a href="/survey">Take Survey</a>
+		</div>
+		<div py:when="'anon'">
+			<a href="/login?redirect=/">Login</a> for further options
+		</div>
+	</body>
+</html>

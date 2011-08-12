@@ -12,9 +12,13 @@
 	clear: both;
 }
 
-th {
+thead th {
 	text-align: center;
 }
+tbody th {
+	text-align: right;
+}
+
 
 /*Survey*/
 

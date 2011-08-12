@@ -1,0 +1,49 @@
+<!--! vim: set syn=genshi: !-->
+<!--!
+A User Listing (possibly filtered)
+	$users = list of SQLAlchemy User objects
+-->
+<html
+	xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:py="http://genshi.edgewall.org/"
+	xmlns:xi="http://www.w3.org/2001/XInclude"
+	>
+	<xi:include href="layout.html"/>
+
+	<head>
+		<title>User Listing</title>
+	</head>
+
+	<body>
+		<div id="user_actions">
+			<a href="/user/new">Add New User</a>
+		</div>
+		<table id="user_listing">
+			<thead>
+				<h2>User Listing</h2>
+				<tr>
+					<th>User Name</th>
+					<th>User Type</th>
+					<th>Actions</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr py:for="user in users">
+					<td>${user.user_name}</td>
+					<td py:choose="user.user_type">
+						<py:when test="'admin'">
+							Administrator
+						</py:when>
+						<py:when test="'user'">
+							Regular (Survey) User
+						</py:when>
+					</td>
+					<td>
+						<a href="/user/${user.user_name}">View</a>
+						<a href="/user/${user.user_name}/edit">Edit</a>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+	</body>
+</html>

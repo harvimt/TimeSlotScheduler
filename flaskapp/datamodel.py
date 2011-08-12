@@ -9,6 +9,9 @@ class User(Base):
 	user_name = Column(String(32), primary_key = True) #CAS/Odin id
 	user_type = Column(Enum('admin','user'))
 
+	full_name = None
+	email = None
+
 	def __init__(self,user_name,user_type):
 		self.user_name = user_name
 		self.user_type = user_type

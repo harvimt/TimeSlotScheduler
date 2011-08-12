@@ -1,0 +1,33 @@
+<!--! vim: set syn=genshi: !-->
+<!--!
+Display information about a user
+input:
+	$user
+-->
+<html
+	xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:py="http://genshi.edgewall.org/"
+	xmlns:xi="http://www.w3.org/2001/XInclude"
+	>
+	<xi:include href="layout.html"/>
+
+	<head>
+		<title>Displaying information for </title>
+	</head>
+
+	<body>
+		<a href="/user/${user.user_name}/edit">Edit</a>
+		<table>
+			<tr><th>Username:</th>   <td>${user.user_name}</td></tr>
+			<tr><th>Full Name:</th>  <td>${user.full_name}</td></tr>
+			<tr>
+				<th>User Type:</th>
+				<py:choose test="user.user_type">
+					<td py:when="'admin'">Administrator</td>
+					<td py:when="'user'">Regular (Survey) User</td>
+				</py:choose>
+			</tr>
+			<tr><th>Email</th>  <td>${user.email}</td></tr>
+		</table>
+	</body>
+</html>
