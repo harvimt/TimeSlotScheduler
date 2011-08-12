@@ -1,5 +1,5 @@
 # CAS Authentication
-# 
+# TODO: rework to use urlparse libs instead of regex and simple concat
 import os, string, random, urllib, re
 
 from flask import session, request, url_for, redirect
@@ -10,52 +10,92 @@ from flaskext.genshi import render_response
 from flatland import Form, String
 from flatland.out.genshi import setup
 
-from flaskapp import genshi, app, globals
+from flaskapp import genshi, app
 
 cas_url = 'https://sso.pdx.edu:8443/cas/'
-logout_url = cas_url + 'logout'
+#logout_url = cas_url + 'logout'
 
-@app.route('/casauthenticate', methods=['GET','POST'])
-def authenticate():
+@app.route('/login', methods=['GET','POST'])
+def login():
 	global cas_url
 
 	if '_cas_token' in session:
-		netid = validate(session['_cas_token'])
-		if netid != None:
-				return render_response('message.html',context=dict(title='Already Logged In',message='Already Logged In'))
+		netid = validate()
+
+		if netid is not None:
+			return render_response('message.html',context=dict(title='Already Logged In',message='Already Logged In'))
+		else:
+			del session['_cas_token']
 
 	if 'ticket' in request.args:
+		session['_cas_token'] = request.args['ticket']
 		netid = validate(request.args['ticket'])
+
 		if netid != None:
-				return render_response('message.html',context=dict(title='Success',message='Successfully Logged In'))
+			if 'redirect' in request.args:
+				return redirect(request.args['redirect'])
+			else:
+				return redirect('/')
 
 	login_url = cas_url + 'login' \
-		+ '?service=' + urllib.quote(serviceURL())
+		+ '?service=' + urllib.quote(url_for('login',_external=True))
 
 	app.logger.debug('Redirecting to: %s' % login_url)
 
 	return redirect(login_url)
 
+@app.route('/logout')
+def logout():
+	logout_url = cas_url + 'logout' \
+		+ '?url=' + urllib.quote(url_for('login',_external=True))
+
+	if validate():
+		del session['username']
+		return redirect(logout_url)
+	else:
+		return render_response('message.html',context=dict(message="Already Logged Out"))
+
 def validate(ticket = None):
+	"""
+	Checks for username session var if present returns it
+	Checks for _cas_token session var, and attempts to validate it
+	if valid set session['username'] to the username associated with the token and return that value
+	otherwise return None
+	"""
+
 	global cas_url
 
+	if ticket is None and 'username' in session:
+		return session['username']
+
 	if ticket is None:
-		if '_cask_token' in session:
+		if '_cas_token' in session:
 			ticket = session['_cas_token']
 		else:
+			app.logger.debug("token empty, valid= no")
 			return None
 
 	val_url = cas_url + "validate" + \
-		'?service=' + urllib.quote(serviceURL()) + \
+		'?service=' + urllib.quote(url_for('login',_external=True)) + \
 		'&ticket=' + urllib.quote(ticket)
 
 	r = urllib.urlopen(val_url).readlines() # returns 2 lines
-	if len(r) == 2 and re.match("yes", r[0]) != None:
-		return r[1].strip()
-	return None
 
-def serviceURL():
-	ret = request.url
-	ret = re.sub(r'ticket=[^&]*&?', '', ret)
-	ret = re.sub(r'\?&?$|&$', '', ret)
-	return ret
+	app.logger.debug("validating token %s" % ticket)
+
+	if len(r) == 2 and re.match("yes", r[0]) is not None:
+		app.logger.debug("valid")
+		session['username'] = r[1].strip()
+		return session['username']
+	else:
+		app.logger.debug("invalid")
+		return None
+
+#the default 403 handler (logged in but still not authorized, should be fine)
+#@app.errorhandler(403)
+#def auth_403_forbidden(error):
+
+@app.errorhandler(401)
+def error_401_not_authorized(error):
+	return render_response('message.html',context=dict(message='You must be logged in to view this page<br/><a href="/login">Log in</a>'))
+

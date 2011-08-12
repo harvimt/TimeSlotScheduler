@@ -1,14 +1,20 @@
 import sqlalchemy
 from sqlalchemy import Column, Integer, String, Boolean, Time, Enum, Sequence, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref
-Base = declarative_base()
+from database import Base
 
 class User(Base):
 	__tablename__ = 'users'
 
 	user_name = Column(String(32), primary_key = True) #CAS/Odin id
 	user_type = Column(Enum('admin','user'))
+
+	def __init__(self,user_name,user_type):
+		self.user_name = user_name
+		self.user_type = user_type
+	
+	def __repr__(self):
+		return "<User user_name=%s user_type=%s>" % (self.user_name, self.user_type)
 
 ##--##
 
@@ -20,6 +26,7 @@ class PrefType(Base):
 
 ##--##
 
+"""
 class Pref(Base):
 	__tablename__ = 'prefs'
 
@@ -29,15 +36,15 @@ class Pref(Base):
 	name = Column(String(32))
 
 	discriminator = Column('type', String(50))
-	__mapper_args__ = {'polymorphic_on': discriminator}
+	#__mapper_args__ = {'polymorphic_on': discriminator}
 
 ##--##
 
-class Time(Pref):
+class TimePref(Pref):
 	__tablename__ = 'times'
-	__mapper_args__ = {'polymorphic_identity': 'times'}
+	#__mapper_args__ = {'polymorphic_identity': 'time'}
 
-	time_id = Column('pref_id', Integer, ForeignKey('prefs.pref_id'), primary_key=True)
+	pref_id = Column(Integer, ForeignKey('prefs.pref_id'), primary_key = True)
 
 	#Days of the week
 	M = Column(Boolean)
@@ -50,6 +57,7 @@ class Time(Pref):
 
 	start_time = Column(Time)
 	stop_time = Column(Time)
+"""
 
 ##--##
 
@@ -75,5 +83,5 @@ class Course(Base):
 	crn = Column(String(32))
 	dept_code = Column(String(8))
 
-	time = relationship(Time)
-	prefs = relationship(Pref, order_by=Pref.pref_id)
+	#time = relationship(TimePref)
+	#prefs = relationship(Pref, order_by=Pref.pref_id)

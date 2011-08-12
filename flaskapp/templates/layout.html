@@ -1,3 +1,4 @@
+<!--! vim: set syn=genshi: !-->
 <!DOCTYPE html>
 <html
 	xmlns="http://www.w3.org/1999/xhtml"
@@ -20,7 +21,17 @@
 	<py:match path="body" once="true">
 		<body py:attrs="select('@*')"><div id="wrap">
 			<div id="header">
-		<h1>UNST Mentor Scheduler</h1>
+				<h1>UNSTMentor Scheduler</h1>
+				<div id="user_info">
+					<py:choose>
+						<py:when test="username is None">
+							<a href="/login">Login</a>
+						</py:when>
+						<py:otherwise>
+							<a href="/logout">Logout ${username}</a>
+						</py:otherwise>
+					</py:choose>
+				</div>
 			</div>
 			<div id="content">
 				${select('*|text()')}

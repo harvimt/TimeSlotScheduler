@@ -1,3 +1,23 @@
+#header h1{
+	float: left;
+}
+#user_info {
+	float: right;
+}
+#content {
+	clear: both;
+}
+
+#footer {
+	clear: both;
+}
+
+th {
+	text-align: center;
+}
+
+/*Survey*/
+
 #ranked_prefs div, #prefs_to_rank div {
 	background-color: lightgray;
 	width: 300px;
@@ -33,9 +53,11 @@
 	clear: both;
 	float: left;
 }
-#footer {
-	clear: both;
-}
 .pref_name {
 	text-align: right;
+}
+
+/*User*/
+#user_listing {
+	width: 100%;
 }

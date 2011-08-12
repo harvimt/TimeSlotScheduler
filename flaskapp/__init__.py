@@ -22,13 +22,17 @@ def callback(template):
 genshi.extensions['html'] = 'html5' #change default rendering mode to html5 instead of strict html4
 
 #database/sqlalchemy setup
-from flask import g
-from sqlalchemy import create_engine
-g = create_engine('sqlite:///data.db', echo=True)
+from database import db_session
+
+@app.teardown_request
+def shutdown_session(exception=None):
+	db_session.remove()
+
 
 def install():
 	from datamodel import Base
-	Base.metadata.create_all(g)
+	from database import engine
+	Base.metadata.create_all(engine)
 
 #setup static folder
 from werkzeug import SharedDataMiddleware
@@ -40,7 +44,7 @@ app.wsgi_app = SharedDataMiddleware(app.wsgi_app, {
   '/': os.path.join(os.path.dirname(filename), 'static')
 })
 
-
 import admin
+import user
 import cas #auth module
 import survey
