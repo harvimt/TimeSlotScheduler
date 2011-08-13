@@ -18,7 +18,7 @@ input:
 	</head>
 
 	<body>
-		<div class="message">
+		<div class="${value_of('message_type') or 'message'}">
 			${Markup(message)}
 		</div>
 	</body>
