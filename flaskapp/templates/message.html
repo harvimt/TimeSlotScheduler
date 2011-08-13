@@ -5,6 +5,7 @@ input:
 	$title
 	$message
 -->
+<?python from genshi import HTML ?>
 <html
 	xmlns="http://www.w3.org/1999/xhtml"
 	xmlns:py="http://genshi.edgewall.org/"
@@ -18,7 +19,7 @@ input:
 
 	<body>
 		<div class="message">
-			${message}
+			${Markup(message)}
 		</div>
 	</body>
 </html>

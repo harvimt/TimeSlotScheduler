@@ -1,0 +1,53 @@
+<!--! vim: set syn=genshi: !-->
+<!--!
+Add/Edit User Form
+$form = flaland form
+@see user.UserForm
+-->
+<html
+	xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:py="http://genshi.edgewall.org/"
+	xmlns:xi="http://www.w3.org/2001/XInclude"
+	xmlns:form="http://ns.discorporate.us/flatland/genshi"
+	>
+	<xi:include href="layout.html"/>
+
+	<head>
+		<title>Foo Form</title>
+	</head>
+
+	<body>
+		<form
+			form:bind="form"
+			action="${submit_url}"
+			method="POST">
+
+			<input type="hidden" name="_csrf_token" value="${csrf_token()}"/>
+
+			<form:with auto_domid="on" auto_for="on">
+				<dl>
+					<label py:with="el=form.user_name" form:bind="el">
+						<dt>${el.label}: </dt>
+						<dd>
+							<input form:bind="el" />
+							${form_errors(el.errors)}
+						</dd>
+					</label>
+
+					<label py:with="el=form.user_type" form:bind="el">
+						<dt>${el.label}: </dt>
+						<dd>
+							<select form:bind="el" >
+								<option value="user" default="true">Regular (Survey) User</option>
+								<option value="admin">Administrator</option>
+							</select>
+							${form_errors(el.errors)}
+						</dd>
+					</label>
+				</dl>
+
+				<button type="submit">Submit</button>
+			</form:with>
+		</form>
+	</body>
+</html>

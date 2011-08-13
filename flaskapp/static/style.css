@@ -19,6 +19,20 @@ tbody th {
 	text-align: right;
 }
 
+#messages { clear: both; }
+#messages div{
+	margin: 5px;
+	padding: 5px;
+}
+#messages .message {
+	border: 1px solid blue;
+	background-color: lightblue;
+}
+
+#messages .error {
+	border: 1px solid red;
+	background-color: pink;
+}
 
 /*Survey*/
 

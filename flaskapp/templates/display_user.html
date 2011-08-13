@@ -18,8 +18,8 @@ input:
 	<body>
 		<a href="/user/${user.user_name}/edit">Edit</a>
 		<table>
-			<tr><th>Username:</th>   <td>${user.user_name}</td></tr>
-			<tr><th>Full Name:</th>  <td>${user.full_name}</td></tr>
+			<tr><th>Username:</th><td>${user.user_name}</td></tr>
+			<tr><th>Full Name:</th><td>${user.full_name}</td></tr>
 			<tr>
 				<th>User Type:</th>
 				<py:choose test="user.user_type">
@@ -27,7 +27,7 @@ input:
 					<td py:when="'user'">Regular (Survey) User</td>
 				</py:choose>
 			</tr>
-			<tr><th>Email</th>  <td>${user.email}</td></tr>
+			<tr><th>Email:</th><td>${user.email}</td></tr>
 		</table>
 	</body>
 </html>

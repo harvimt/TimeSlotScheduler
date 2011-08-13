@@ -1,35 +1,13 @@
 import random, string
 
 from flaskapp import app
-from flask import session, request, url_for, redirect, get_flashed_messages
+from flask import session, request, url_for, redirect, get_flashed_messages, abort
 from sqlalchemy.orm import sessionmaker
 
 from database import db_session as sess
 from datamodel import User
 
 import cas
-
-@app.before_request
-def csrf_protect():
-	if request.method == "POST":
-		token = session.pop('_csrf_token', None)
-		if not token or token != request.form.get('_csrf_token'):
-			abort(403)
-
-def generate_csrf_token(force=True):
-	if force or '_csrf_token' not in session:
-		session['_csrf_token'] = \
-			''.join([random.choice(string.letters + string.digits) for i in xrange(0,32)])
-	return session['_csrf_token']
-
-def make_sql_session():
-	return sessionmaker(bind=g)
-
-def get_username():
-	if 'REMOTE_USER' in request.environ:
-		return request.environ['REMOTE_USER']
-	else:
-		return None
 
 def require_auth(user_type=None):
 	"""aborts on failure"""
@@ -43,6 +21,7 @@ def require_auth(user_type=None):
 		user = sess.query(User).get(username)
 		user.user_type == user_type or abort(403)
 
+#add globals to templates
 @app.context_processor
 def template_globals():
 	if 'username' in session:
@@ -50,8 +29,11 @@ def template_globals():
 	else:
 		username = None
 
-
-	return dict(
+	r = dict(
 		username = username,
-		messages = get_flashed_messages(with_categories = True)
+		csrf_token = app.jinja_env.globals['csrf_token']
 	)
+
+	#app.logger.debug('%r', r)
+
+	return r

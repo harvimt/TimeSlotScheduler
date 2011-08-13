@@ -1,5 +1,5 @@
 #flask web-server
-from flask import Flask
+from flask import Flask, session, get_flashed_messages
 
 #flask genshi templates
 from flaskext.genshi import render_response
@@ -43,6 +43,12 @@ filename = inspect.currentframe().f_code.co_filename
 app.wsgi_app = SharedDataMiddleware(app.wsgi_app, {
   '/': os.path.join(os.path.dirname(filename), 'static')
 })
+
+#add csrf protection
+from flaskext.csrf import csrf
+csrf(app)
+
+#import sub-modules
 
 import admin
 import user

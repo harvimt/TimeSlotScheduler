@@ -4,9 +4,19 @@
 	xmlns="http://www.w3.org/1999/xhtml"
 	xmlns:py="http://genshi.edgewall.org/" py:strip="">
 
+	<!--! Global Genshi Snippets -->
 	<script py:def="jquery" type="text/javascript" src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.6.2.min.js"></script>
 	<script py:def="jquery_ui" type="text/javascript" src="http://ajax.aspnetcdn.com/ajax/jquery.ui/1.8.14/jquery-ui.min.js"></script>
 
+	<py:def function="form_errors(errors)">
+		<ul py:if="errors" class="errors">
+			<li py:for="error in errors">
+				${error}
+			</li>
+		</ul>
+	</py:def>
+
+	<!--! Template Header -->
 	<py:match path="head" once="true">
 		<head py:attrs="select('@*')">
 			<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
@@ -18,7 +28,7 @@
 		</head>
 	</py:match>
 
-	<py:match path="body" once="true">
+	<py:match path="body" once="true" py:with="messages = get_flashed_messages(with_categories=True)">
 		<body py:attrs="select('@*')"><div id="wrap">
 			<div id="header">
 				<h1>UNSTMentor Scheduler</h1>
@@ -33,8 +43,8 @@
 					</py:choose>
 				</div>
 			</div>
-			<div id="messages" py:if="len(messages) > 0">
-				<div py:for="category, message in messages" class="message-${category}">
+			<div id="messages" py:if="messages">
+				<div py:for="category, message in messages" class="${category}">
 					${message}
 				</div>
 			</div>

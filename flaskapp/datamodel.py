@@ -15,7 +15,7 @@ class User(Base):
 	def __init__(self,user_name,user_type):
 		self.user_name = user_name
 		self.user_type = user_type
-	
+
 	def __repr__(self):
 		return "<User user_name=%s user_type=%s>" % (self.user_name, self.user_type)
 

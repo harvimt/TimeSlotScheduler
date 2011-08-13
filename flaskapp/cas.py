@@ -23,7 +23,8 @@ def login():
 		netid = validate()
 
 		if netid is not None:
-			return render_response('message.html',context=dict(title='Already Logged In',message='Already Logged In'))
+			flash('Already Logged In')
+			return redirect('/')
 		else:
 			del session['_cas_token']
 
@@ -53,7 +54,8 @@ def logout():
 		del session['username']
 		return redirect(logout_url)
 	else:
-		return render_response('message.html',context=dict(message="Already Logged Out"))
+		flash('Already Logged Out')
+		return redirect('/')
 
 def validate(ticket = None):
 	"""
@@ -97,5 +99,5 @@ def validate(ticket = None):
 
 @app.errorhandler(401)
 def error_401_not_authorized(error):
-	return render_response('message.html',context=dict(message='You must be logged in to view this page<br/><a href="/login">Log in</a>'))
+	return render_response('message.html',context=dict(title="You Are Not Authorized",message=u'You must be logged in to view this page<br/><a href="/login">Log in</a>'))
 
