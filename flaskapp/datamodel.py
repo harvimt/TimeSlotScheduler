@@ -12,9 +12,14 @@ class User(Base):
 	full_name = None
 	email = None
 
-	def __init__(self,user_name,user_type):
-		self.user_name = user_name
-		self.user_type = user_type
+	def __init__(self,*args,**kwargs):
+		self.update(*args,**kwargs)
+
+	def update(self,user_name=None,user_type=None):
+		"""like self.__dict__.update(), except sqlalchemy safe"""
+
+		if user_name is not None: self.user_name = user_name
+		if user_type is not None: self.user_type = user_type
 
 	def __repr__(self):
 		return "<User user_name=%s user_type=%s>" % (self.user_name, self.user_type)

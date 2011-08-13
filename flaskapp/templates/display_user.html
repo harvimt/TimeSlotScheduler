@@ -16,7 +16,8 @@ input:
 	</head>
 
 	<body>
-		<a href="/user/${user.user_name}/edit">Edit</a>
+		<a href="${url_for('list_users')}">List All</a>
+		<a href="${url_for('edit_user',username=user.user_name)}">Edit</a>
 		<table>
 			<tr><th>Username:</th><td>${user.user_name}</td></tr>
 			<tr><th>Full Name:</th><td>${user.full_name}</td></tr>

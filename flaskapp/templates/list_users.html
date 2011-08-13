@@ -16,7 +16,7 @@ A User Listing (possibly filtered)
 
 	<body>
 		<div id="user_actions">
-			<a href="/user/new">Add New User</a>
+			<a href="${url_for('new_user')}">Add New User</a>
 		</div>
 		<table id="user_listing">
 			<thead>
@@ -29,7 +29,7 @@ A User Listing (possibly filtered)
 			</thead>
 			<tbody>
 				<tr py:for="user in users">
-					<td>${user.user_name}</td>
+					<td><a href="${url_for('display_user',username=user.user_name)}">${user.user_name}</a></td>
 					<td py:choose="user.user_type">
 						<py:when test="'admin'">
 							Administrator
@@ -39,8 +39,8 @@ A User Listing (possibly filtered)
 						</py:when>
 					</td>
 					<td>
-						<a href="/user/${user.user_name}">View</a>
-						<a href="/user/${user.user_name}/edit">Edit</a>
+						<a href="${url_for('display_user',username=user.user_name)}">View</a>
+						<a href="${url_for('edit_user',username=user.user_name)}">Edit</a>
 					</td>
 				</tr>
 			</tbody>

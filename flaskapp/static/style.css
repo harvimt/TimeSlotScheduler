@@ -32,6 +32,7 @@ tbody th {
 .error {
 	border: 1px solid red;
 	background-color: pink;
+	list-style-type: none;
 }
 
 /*Survey*/

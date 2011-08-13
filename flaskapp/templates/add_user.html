@@ -13,10 +13,13 @@ $form = flaland form
 	<xi:include href="layout.html"/>
 
 	<head>
-		<title>Foo Form</title>
+		<title>Add New User</title>
 	</head>
 
 	<body>
+		<h2>Add New User</h2>
+		<a href="${url_for('list_users')}">List All</a>
+
 		<form
 			form:bind="form"
 			action="${submit_url}"

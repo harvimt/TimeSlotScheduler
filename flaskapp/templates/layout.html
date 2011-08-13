@@ -10,7 +10,7 @@
 
 	<py:def function="form_errors(errors)">
 		<ul py:if="errors" class="errors">
-			<li py:for="error in errors">
+			<li py:for="error in errors" class="error">
 				${error}
 			</li>
 		</ul>

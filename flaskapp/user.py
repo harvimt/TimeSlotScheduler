@@ -30,13 +30,22 @@ class UserForm(Form):
 	user_type = Enum.using(label="User Type",valid_values=['admin','user'])
 
 def user_name_does_not_exist(el, state):
-	return sess.query(User).get(el['user_name'].value) is None
+	valid = sess.query(User).get(el['user_name'].value) is None
+	if not valid:
+		el['user_name'].add_error('User Name already exists')
+	return valid
 
 def user_name_exists(el, state):
-	return sess.query(User).get(el['user_name'].value) is None
+	valid = sess.query(User).get(el['user_name'].value) is not None
+	if not valid:
+		el['user_name'].add_error('Username does not exist')
+	return valid
 
 def odin_name_exists(el,state):
-	return get_odin(el['user_name'].value) is not None
+	valid = get_odin(el['user_name'].value) is not None
+	if not valid:
+		el['user_name'].add_error('odin name "%s" does not exist' % el['user_name'].value)
+	return valid
 
 class NewUserForm(UserForm):
 	validators = [user_name_does_not_exist, odin_name_exists]
@@ -46,25 +55,39 @@ class EditUserForm(UserForm):
 
 ## Odin/LDAP helpers ##
 
+def ldap_up():
+	r = False
+	try:
+		l = ldap.open('localhost')
+		l.simple_bind()
+		r = True
+	except ldap.SERVER_DOWN:
+		r = False
+	finally:
+		if l is not None: l.unbind()
+
+	return r
+
 def get_odin(odin_name):
 	""" get odin information from LDAP """
-	l = ldap.open('localhost')
-	l.simple_bind()
+	try:
+		l = ldap.open('localhost')
+		l.simple_bind()
 
-	s = l.search_s("ou=people,dc=pdx,dc=edu",ldap.SCOPE_SUBTREE,'uid=%s' % odin_name, ['gecos','mailLocalAddress'])
+		s = l.search_s("ou=people,dc=pdx,dc=edu",ldap.SCOPE_SUBTREE,'uid=%s' % odin_name, ['gecos','mailLocalAddress'])
 
-	if not s:
+		if not s: return None
+
+		full_name = s[0][1]['gecos'][0]
+		email_address = s[0][1]['mailLocalAddress'][0]
+
+		r = dict(full_name=full_name, email=email_address)
+
+	except ldap.SERVER_DOWN:
 		return None
-
-	full_name = s[0][1]['gecos'][0]
-	email_address = s[0][1]['mailLocalAddress'][0]
-
-	#app.logger.debug("full_name = %s" % full_name)
-
-	r = dict(full_name=full_name, email=email_address)
-
-	l.unbind()
-
+	finally:
+		if l is not None:
+			l.unbind()
 	return r
 
 ## Pages ##
@@ -81,6 +104,13 @@ def list_users():
 def new_user():
 	"""Display new user creation form or accept and process it"""
 	require_auth('admin')
+
+	if not ldap_up():
+		return render_response('message.html',dict(
+			message_type='error',
+			title="Add New User - LDAP Problem",
+			message="Cannot add a new user since LDAP is not accessible"
+		))
 
 	form = NewUserForm()
 
@@ -120,7 +150,7 @@ def display_user(username):
 
 	return render_response('display_user.html', dict(user=user))
 
-@app.route('/user/<username>/edit',methods=['GET','POST'])
+@app.route('/user/edit/<username>',methods=['GET','POST'])
 def edit_user(username):
 	"""Edit the user's info"""
 	require_auth('admin')
@@ -128,31 +158,37 @@ def edit_user(username):
 	user = sess.query(User).get(username)
 	if user is None: abort(404)
 
-	form = EditUserForm.from_object(user)
+	form = EditUserForm()
+	form.set_by_object(user)
+	app.logger.debug('(Post-Set) form=%r, valid=%r,errors=%r' % (form,form.valid,form.errors))
 
 	if request.method == 'POST':
 		values = request.form.copy()
 		del values['_csrf_token']
 
 		if 'delete' in values:
-			return render_response('del_confirm_user.html',dict(submit_url=url_form('del_confirm_user',username=username)))
+			return render_response('del_confirm_user.html',dict(submit_url=url_for('del_confirm_user',username=username),name2del=username))
 
 		form.set(values)
 
-		form.validate()
+		if not form.validate():
+			flash('Form Invalid','error')
+			app.logger.debug('form=%r, valid=%r,errors=%r' % (form,form.valid,form.errors))
 
-		if form['user_name'].value != username:
+		elif form['user_name'].value != username:
+			flash('Form Invalid','error')
 			form.add_error('username in url does not match that in form')
 
-		if not form.valid:
-			flash('Form Invalid','error')
 		else:
-			user.__dict__.update(form.value)
+			user.update(**form.value)
+			app.logger.debug('user=%r' % user)
+			app.logger.debug('dirty: %r' % sess.dirty)
+			app.logger.debug('id_modified=%r' % sess.is_modified(user))
 			sess.commit()
 			flash('Successfully Updated User Info')
 
 	user = sess.query(User).get(username)
-	return render_response('edit_user.html',dict(form=form,submit_url=url_for('edit_user')))
+	return render_response('edit_user.html',dict(form=form,submit_url=url_for('edit_user',username=username)))
 
 @app.route('/user/<username>/confirm_delete', methods=['POST'])
 def del_confirm_user(username):
