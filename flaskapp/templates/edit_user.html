@@ -1,8 +1,7 @@
 <!--! vim: set syn=genshi: !-->
 <!--!
-Add/Edit User Form
+Edit User Form
 $form = flaland form
-@see user.UserForm
 -->
 <html
 	xmlns="http://www.w3.org/1999/xhtml"
@@ -22,27 +21,26 @@ $form = flaland form
 			action="${submit_url}"
 			method="POST">
 
-		  <form:with auto_domid="on" auto_for="on">
-			<dl>
-				<label py:with="el=form.user_name" form:bind="el">
-					<dt>${el.label}: </dt><dd><input form:bind="el" /></dd>
-				</label>
+			<input type="hidden" name="_csrf_token" value="${csrf_token()}"/>
+			<input py:with="el=form.user_name" type="hidden" form:bind="el" />
 
-				<label py:with="el=form.user_type" form:bind="el">
-					<dt>${el.label}: </dt>
-					<dd>
-						<select form:bind="el" >
-							<option value="admin">Administrator</option>
-							<option value="user">Regular (Survey) User</option>
-						</select>
-					</dd>
-				</label>
-			</dl>
+			<form:with auto_domid="on" auto_for="on">
+				<dl>
+					<label py:with="el=form.user_type" form:bind="el">
+						<dt>${el.label}: </dt>
+						<dd>
+							<select form:bind="el" >
+								<option value="user" default="true">Regular (Survey) User</option>
+								<option value="admin">Administrator</option>
+							</select>
+							${form_errors(el.errors)}
+						</dd>
+					</label>
+				</dl>
 
-			<input type="hidden" form:bind="form.csrf_token"/>
-
-			<button type="submit">Submit</button>
-		  </form:with>
+				<button type="submit">Submit</button>
+				<button type="submit" name="delete">Delete User</button>
+			</form:with>
 		</form>
 	</body>
 </html>
