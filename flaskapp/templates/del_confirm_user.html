@@ -1,0 +1,28 @@
+<!--! vim: set syn=genshi: !-->
+<!--!
+	Confirm whether to delete a user or not
+-->
+<?python from genshi import HTML ?>
+<html
+	xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:py="http://genshi.edgewall.org/"
+	xmlns:xi="http://www.w3.org/2001/XInclude"
+	>
+	<xi:include href="layout.html"/>
+
+	<head>
+		<title>${title}</title>
+	</head>
+
+	<body>
+		<h2>Are you sure you want to delete
+		<form
+			action="${submit_url}"
+			method="POST">
+			<input type="hidden" name="_csrf_token" value="${csrf_token()}"/>
+
+			<button type="submit" name="confirm" value="yes">Yes</button>
+			<button type="submit" name="confirm" value="no">No</button>
+		</form>
+	</body>
+</html>
