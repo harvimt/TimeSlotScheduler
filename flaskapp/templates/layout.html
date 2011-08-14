@@ -35,10 +35,10 @@
 				<div id="user_info">
 					<py:choose>
 						<py:when test="username is None">
-							<a href="/login">Login</a>
+							<a href="${url_for('login')}">Login</a>
 						</py:when>
 						<py:otherwise>
-							<a href="/logout">Logout ${username}</a>
+							<a href="${url_for('logout')}">Logout ${username}</a>
 						</py:otherwise>
 					</py:choose>
 				</div>

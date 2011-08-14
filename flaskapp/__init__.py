@@ -28,11 +28,15 @@ from database import db_session
 def shutdown_session(exception=None):
 	db_session.remove()
 
-
 def install():
-	from datamodel import Base
-	from database import engine
+	from datamodel import Base, User
+	from database import engine, db_session as sess
 	Base.metadata.create_all(engine)
+
+	#Add initial admin user#
+	user = User(user_name='harvimt',user_type='admin')
+	sess.add(user)
+	sess.commit()
 
 #setup static folder
 from werkzeug import SharedDataMiddleware

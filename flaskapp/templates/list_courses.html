@@ -1,0 +1,42 @@
+<!--! vim: set syn=genshi: !-->
+<!--!
+A Course Listing (possibly filtered)
+	$courses = list of `datamodel.Course` objects
+-->
+<html
+	xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:py="http://genshi.edgewall.org/"
+	xmlns:xi="http://www.w3.org/2001/XInclude"
+	>
+	<xi:include href="layout.html"/>
+
+	<head>
+		<title>User Listing</title>
+	</head>
+
+	<body>
+		<table id="user_listing">
+			<thead>
+				<h2>User Listing</h2>
+				<tr>
+					<th>User Name</th>
+					<th>User Type</th>
+					<th>Actions</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr py:for="user in users">
+					<td><a href="${url_for('display_course',course_id=course.course_id)}">${user.user_name}</a></td>
+					<td py:choose="user.user_type">
+						<py:when test="'admin'">
+							Administrator
+						</py:when>
+						<py:when test="'user'">
+							Regular (Survey) User
+						</py:when>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+	</body>
+</html>

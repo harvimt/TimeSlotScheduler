@@ -17,14 +17,14 @@ $user_type = String, 'admin', 'user', or 'anon'
 	<body py:choose="user_type">
 		<div py:when="'admin'">
 			Welcome Administrator<br/>
-			<a href="/admin">Administrate Survey</a>
+			<a href="#TODO">Administrate Survey</a>
 		</div>
 		<div py:when="'user'">
 			Welcome Mentor<br/>
-			<a href="/survey">Take Survey</a>
+			<a href="#TODO">Take Survey</a>
 		</div>
 		<div py:when="'anon'">
-			<a href="/login?redirect=/">Login</a> for further options
+			<a href="${url_for('login')}">Login</a> for further options
 		</div>
 	</body>
 </html>

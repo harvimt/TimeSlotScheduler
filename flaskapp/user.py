@@ -1,6 +1,13 @@
 """
-Administer user info
+Administer User Info
+~~~~~~~~~~~~~~~~~~~~
+
+:Copyright © 2011 Mark Harviston <infinull@gmail.com>
+
+
 list users, add new user, edit user info, etc.
+
+see `datamodel.User`
 """
 
 import ldap
@@ -145,8 +152,7 @@ def display_user(username):
 		user.email = 'unknown'
 		user.full_name = 'unknown'
 	else:
-		user.email = oinfo['email']
-		user.full_name = oinfo['full_name']
+		user.update(**oinfo)
 
 	return render_response('display_user.html', dict(user=user))
 
