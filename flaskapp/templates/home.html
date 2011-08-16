@@ -1,7 +1,9 @@
 <!--! vim: set syn=genshi: !-->
 <!--!
 Home Page
-$user_type = String, 'admin', 'user', or 'anon'
+~~~~~~~~~
+::Parameters::
+    -`user_type` string, 'user', 'admin' or 'anon', display different content depending user's persmissions
 -->
 <html
 	xmlns="http://www.w3.org/1999/xhtml"
@@ -18,6 +20,9 @@ $user_type = String, 'admin', 'user', or 'anon'
 		<div py:when="'admin'">
 			Welcome Administrator<br/>
 			<a href="#TODO">Administrate Survey</a>
+
+			<a href="${url_for('list_courses')}">Administrate Courses</a>
+			<a href="${url_for('list_users')}">Administrate Users</a>
 		</div>
 		<div py:when="'user'">
 			Welcome Mentor<br/>
