@@ -8,7 +8,7 @@ SQLAlchemy Declarative Data-Model
 """
 
 import sqlalchemy
-from sqlalchemy import Column, Integer, String, Boolean, Time, Enum, Sequence, ForeignKey, Float
+from sqlalchemy import Column, Integer, String, Boolean, Time, Enum, Sequence, ForeignKey, Float, Table
 from sqlalchemy.orm import relationship, backref
 from database import Base
 
@@ -57,6 +57,8 @@ class Pref(Base):
 
 
 	pref_id = Column(Integer, Sequence('pref_id_seq'), primary_key = True)
+	pref_type_id = Column(Integer, ForeignKey('pref_types.pref_type_id'))
+
 	pref_type = relationship(PrefType)
 
 	name = Column(String(32))
@@ -131,6 +133,12 @@ class TimePref(Pref):
 
 ##--##
 
+course2pref = Table('course2pref', Base.metadata,
+	Column('course_id',Integer,ForeignKey('courses.course_id')),
+	Column('pref_id',Integer,ForeignKey('prefs.pref_id'))
+)
+
+
 class Course(Base):
 	__tablename__ = 'courses'
 
@@ -138,6 +146,7 @@ class Course(Base):
 	crn = Column(String(32))
 	dept_code = Column(String(8))
 
-	#time_id = Column(Integer, ForeignKey('times.pref_id'))
-	#time = relationship(TimePref)
-	#prefs = relationship(Pref, order_by=Pref.pref_id)
+	time_id = Column(Integer, ForeignKey('times.pref_id'))
+	time = relationship(TimePref)
+
+	prefs = relationship(Pref, secondary=course2pref, order_by=Pref.pref_id)
