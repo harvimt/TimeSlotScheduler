@@ -1,3 +1,14 @@
+# coding=UTF-8
+"""
+SQLAlchemy Setup
+~~~~~~~~~~~~~~~~
+
+:Copyright © 2011 Mark Harviston <infinull@gmail.com>
+
+Boilerplate for SQLAlchemy
+This needs to be importable by other modules, and it clogs up datamodel if it's in there
+
+"""
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base

@@ -1,3 +1,13 @@
+# coding=UTF-8
+"""
+Application Globals
+~~~~~~~~~~~~~~~~~~~
+
+:Copyright © 2011 Mark Harviston <infinull@gmail.com>
+
+The plan is to have all modules import * this one so helper utilities can go in here
+
+"""
 import random, string
 
 from flaskapp import app
@@ -33,7 +43,5 @@ def template_globals():
 		username = username,
 		csrf_token = app.jinja_env.globals['csrf_token']
 	)
-
-	#app.logger.debug('%r', r)
 
 	return r

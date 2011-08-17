@@ -1,5 +1,15 @@
-# CAS Authentication
+# coding=UTF-8
+"""
+CAS Authentication
+~~~~~~~~~~~~~~~~~~
+
+:Copyright © 2011 Mark Harviston <infinull@gmail.com>
+
+Handle login/logout and authorization through PSU's CAS server
+
+"""
 # TODO: rework to use urlparse libs instead of regex and simple concat
+#
 import os, string, random, urllib, re
 
 from flask import session, request, url_for, redirect
@@ -92,10 +102,6 @@ def validate(ticket = None):
 	else:
 		app.logger.debug("invalid")
 		return None
-
-#the default 403 handler (logged in but still not authorized, should be fine)
-#@app.errorhandler(403)
-#def auth_403_forbidden(error):
 
 @app.errorhandler(401)
 def error_401_not_authorized(error):

@@ -1,3 +1,14 @@
+# coding=UTF-8
+"""
+Survey
+~~~~~~
+
+:Copyright © 2011 Mark Harviston <infinull@gmail.com>
+
+There's not much here mostly proof-of-concept and placeholder
+Eventually
+
+"""
 import string, random
 
 from flask import session, request, url_for, redirect

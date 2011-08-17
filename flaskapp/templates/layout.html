@@ -1,10 +1,17 @@
 <!--! vim: set syn=genshi: !-->
+<!--
+Layout Template
+~~~~~~~~~~~~~~~
+
+This template is xi:include'ed on all pages (well so far) and adds header, footer, etc.
+Also includes some snippets
+-->
 <!DOCTYPE html>
 <html
 	xmlns="http://www.w3.org/1999/xhtml"
 	xmlns:py="http://genshi.edgewall.org/" py:strip="">
 
-	<!--! Global Genshi Snippets -->
+	<!--! ==Global Genshi Snippets== -->
 	<script py:def="jquery" type="text/javascript" src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.6.2.min.js"></script>
 	<script py:def="jquery_ui" type="text/javascript" src="http://ajax.aspnetcdn.com/ajax/jquery.ui/1.8.14/jquery-ui.min.js"></script>
 
@@ -16,7 +23,7 @@
 		</ul>
 	</py:def>
 
-	<!--! Template Header -->
+	<!--! ==Template Header== -->
 	<py:match path="head" once="true">
 		<head py:attrs="select('@*')">
 			<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>

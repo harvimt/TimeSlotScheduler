@@ -1,7 +1,19 @@
+# coding=UTF-8
+"""
+ARC Mentor Scheduler Web-App
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:Copyright © 2011 Mark Harviston <infinull@gmail.com>
+
+This is the entry-point for the ARC Mentor Scheduler Web-App
+Not much happens here, just boilerplate and setup
+
+"""
+
 #flask web-server
 from flask import Flask, session, get_flashed_messages
 
-#flask genshi templates
+#flask Genshi templates
 from flaskext.genshi import render_response
 from flaskext.genshi import Genshi
 
@@ -21,16 +33,15 @@ def callback(template):
 
 genshi.extensions['html'] = 'html5' #change default rendering mode to html5 instead of strict html4
 
-#database/sqlalchemy setup
-from database import db_session
+#database/SQLAlchemy setup
+from database import db_session as sess
 
 @app.teardown_request
 def shutdown_session(exception=None):
-	db_session.remove()
+	sess.remove()
 
 def install():
 	from datamodel import Base, User, PrefType
-	from database import engine, db_session as sess
 	Base.metadata.create_all(engine)
 
 	#Add initial admin user#
@@ -55,7 +66,7 @@ app.wsgi_app = SharedDataMiddleware(app.wsgi_app, {
   '/': os.path.join(os.path.dirname(filename), 'static')
 })
 
-#add csrf protection
+#add CSRF protection
 from flaskext.csrf import csrf
 csrf(app)
 

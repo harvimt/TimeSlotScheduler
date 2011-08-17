@@ -24,8 +24,8 @@ class User(Base):
 	::Members::
 	-`user_name`: the user_name
 	-`user_type`: the user_type
-	-`full_name`: user's full name, pulled from ldap, will often be None
-	-`email`:     user's email, pulled from ldap, will often be None
+	-`full_name`: user's full name, pulled from LDAP, will often be None
+	-`email`:     user's email, pulled from LDAP, will often be None
 	"""
 	__tablename__ = 'users'
 
@@ -39,7 +39,7 @@ class User(Base):
 		self.update(*args,**kwargs)
 
 	def update(self, user_name=None, user_type=None, full_name=None, email=None):
-		""" like self.__dict__.update(), except sqlalchemy safe """
+		""" like self.__dict__.update(), except SQLAlchemy safe """
 		#TODO: think of a way to do this with reflection/meta-programming
 
 		if user_name is not None: self.user_name = user_name

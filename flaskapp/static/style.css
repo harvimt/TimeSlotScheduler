@@ -1,3 +1,12 @@
+/*
+CSS Style File
+~~~~~~~~~~~~~~
+
+:Copyright © 2011 Mark Harviston <infinull@gmail.com>
+
+All CSS Files are here
+
+*/
 #header h1{
 	float: left;
 }
@@ -35,7 +44,9 @@ tbody th {
 	list-style-type: none;
 }
 
-/*Survey*/
+/**********
+ * Survey *
+ **********/
 
 #ranked_prefs div, #prefs_to_rank div {
 	background-color: lightgray;

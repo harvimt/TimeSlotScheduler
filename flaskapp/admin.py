@@ -1,3 +1,12 @@
+# coding=UTF-8
+"""
+
+Administrate the Survey
+~~~~~~~~~~~~~~~~~~~~~~~
+
+:Copyright © 2011 Mark Harviston <infinull@gmail.com>
+
+"""
 import string, random
 
 from flask import session, request, url_for, redirect, abort
@@ -19,7 +28,6 @@ import cas
 @app.route('/')
 def home():
 
-	#return render_response('home.html',context=dict(user_type='anon',username=get_username()))
 	username = cas.validate()
 	if username is None:
 		user_type = 'anon'
@@ -38,12 +46,6 @@ def home():
 		app.logger.debug('_cas_token not set')
 
 	return render_response('home.html',context=dict(user_type=user_type))
-
-#@app.route('/login')
-#def login():
-	#username = get_username()
-	#if not username: return ('', 401)
-	#return redirect('/')
 
 @app.route('/admin/survey')
 def admin():
