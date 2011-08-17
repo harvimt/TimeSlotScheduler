@@ -205,6 +205,40 @@ class TimePref(Pref):
 			if self.time_type == 'hybrid':
 				self.name += ' HYBRID'
 	
+	bfieldmap = dict(
+		M= 0b0000001,
+		T= 0b0000010,
+		W= 0b0000100,
+		R= 0b0001000,
+		F= 0b0010000,
+		Sa=0b0100000,
+		Su=0b1000000
+	)
+
+	def from_bfield(self,bfield):
+		d = {}
+		for k,v in self.bfieldmap:
+			d[k] = (bfield & v) != 0
+		self.update(**d)
+
+	def to_bfield():
+		bfield = 0b0
+		for k,v in self.bfieldmap:
+			if self.__dict__[k]: bfield |= v
+	
+	def overlaps(self,other):
+		if (self.to_bfield() & other.to_bfield) != 0:
+			if self.start_time == other.start_time and self.stop_time == other.stop_time:
+				return True
+			elif other.start_time > self.start_time:
+				if self.stop_time > other.course.start_time:
+					return True
+			else: #self.start_time < other.start_time
+				if other.stop_time > self.stop_time:
+					return True
+
+		return False
+	
 	def __str__(self):
 		return self.name
 

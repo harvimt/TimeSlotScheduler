@@ -5,6 +5,10 @@ Administer Course Info
 
 :Copyright © 2011 Mark Harviston <infinull@gmail.com>
 
+ * Display course information in a convenient spreadsheet-like format
+ * Upload a CSV formatted banweb style and upload it
+ * TODO make PrefType proof
+
 """
 
 import csv, operator, datetime
