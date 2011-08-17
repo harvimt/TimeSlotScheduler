@@ -29,13 +29,20 @@ def shutdown_session(exception=None):
 	db_session.remove()
 
 def install():
-	from datamodel import Base, User
+	from datamodel import Base, User, PrefType
 	from database import engine, db_session as sess
 	Base.metadata.create_all(engine)
 
 	#Add initial admin user#
 	user = User(user_name='harvimt',user_type='admin')
 	sess.add(user)
+
+	#add pref types
+	sess.add_all((
+		PrefType('Time'),
+		PrefType('Faculty'),
+		PrefType('Theme')
+	))
 	sess.commit()
 
 #setup static folder
@@ -53,8 +60,8 @@ from flaskext.csrf import csrf
 csrf(app)
 
 #import sub-modules
-
 import admin
 import user
 import cas #auth module
 import survey
+import courses

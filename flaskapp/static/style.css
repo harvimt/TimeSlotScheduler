@@ -80,3 +80,8 @@ tbody th {
 #user_listing {
 	width: 100%;
 }
+
+#course_listing {
+	width: 100%;
+	max-width: 800px;
+}

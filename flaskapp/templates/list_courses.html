@@ -18,26 +18,23 @@ A Course Listing (possibly filtered)
 	</head>
 
 	<body>
-		<table id="user_listing">
+		<a href="${url_for('upload_courses')}">Upload Courses</a>
+		<table id="course_listing" >
 			<thead>
 				<h2>Course Listing</h2>
 				<tr>
-					<th>User Name</th>
-					<th>User Type</th>
-					<th>Actions</th>
+					<th>CRN</th>
+					<th>Time</th>
+					<th>Theme</th>
+					<th>Faculty</th>
 				</tr>
 			</thead>
 			<tbody>
-				<tr py:for="user in users">
-					<td><a href="${url_for('display_course',course_id=course.course_id)}">${user.user_name}</a></td>
-					<td py:choose="user.user_type">
-						<py:when test="'admin'">
-							Administrator
-						</py:when>
-						<py:when test="'user'">
-							Regular (Survey) User
-						</py:when>
-					</td>
+				<tr py:for="course in courses" py:with="prefs=course.prefs_as_dict()">
+					<td>${course.crn}</td>
+					<td>${course.time}</td>
+					<td>${prefs.Theme}</td>
+					<td>${prefs.Faculty}</td>
 				</tr>
 			</tbody>
 		</table>
