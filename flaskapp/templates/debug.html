@@ -1,0 +1,27 @@
+<!--! vim: set syn=genshi: !-->
+<!--!
+Display a Single Message
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Template for displaying a single message
+:Input
+	$title
+	$message
+-->
+<html
+	xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:py="http://genshi.edgewall.org/"
+	xmlns:xi="http://www.w3.org/2001/XInclude"
+	>
+	<xi:include href="layout.html"/>
+
+	<head>
+		<title>Debug</title>
+	</head>
+
+	<body>
+		<pre class="${value_of('message_type') or 'message'}">
+			${message}
+		</pre>
+	</body>
+</html>

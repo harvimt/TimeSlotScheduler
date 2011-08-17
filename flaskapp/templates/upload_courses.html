@@ -1,0 +1,25 @@
+<!--! vim: set syn=genshi: !-->
+<!--!
+Upload a courses CSV File
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+-->
+<html
+	xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:py="http://genshi.edgewall.org/"
+	xmlns:xi="http://www.w3.org/2001/XInclude"
+	>
+	<xi:include href="layout.html"/>
+
+	<head>
+		<title></title>
+	</head>
+
+	<body>
+		<form method="POST" action="${url_for('upload_courses')}" enctype="multipart/form-data">
+			<input type="hidden" name="_csrf_token" value="${csrf_token()}"/>
+			<input type="file" name="courses_file"/>
+			<button type="submit">Upload File</button>
+		</form>
+	</body>
+</html>
