@@ -5,12 +5,15 @@ SQLAlchemy Declarative Data-Model
 
 :Copyright © 2011 Mark Harviston <infinull@gmail.com>
 
+Helper methods added as needed with very little symmetry
+
 """
 
 import datetime
 
 import sqlalchemy
 from sqlalchemy import Column, Integer, String, Boolean, Time, Enum, Sequence, ForeignKey, Float, Table
+from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.orm import relationship, backref
 from database import Base
 
@@ -58,15 +61,21 @@ class PrefType(Base):
 
 	pref_type_id = Column(Integer, Sequence('pref_type_id_seq'), primary_key = True)
 	name = Column(String(32))
+	weight_type = Column(Enum(
+		'weight', #each value weighted from X to Y
+		'rank'    #top len(X..Y) values ranked X to Y
+	))
 
 	def __init__(self,*args,**kwargs):
+		self.weight_type = 'weight'
 		self.update(*args,**kwargs)
 
-	def update(self,name=None):
+	def update(self,name=None,weight_type=None):
 		if name is not None: self.name = name
+		if weight_type is not None: self.weight_type = weight_type
 
 	def __repr__(self):
-		return "<PrefType id=%s name=%s>" % (self.pref_type_id, self.pref_type_name)
+		return "<PrefType id=%s name=%s>" % (self.pref_type_id, self.name)
 
 ##--##
 
@@ -98,10 +107,20 @@ class PrefWeight(Base):
 
 	weight_num = Column(Integer)
 	weight_value = Column(Float)
-	
+
 	pref_type_id = Column(Integer, ForeignKey('pref_types.pref_type_id'))
 
-	pref_type = relationship(PrefType)
+	pref_type = relationship(PrefType,backref=backref('weights',order_by=weight_num))
+
+	__table_args__ = (UniqueConstraint(pref_type_id, weight_num),)
+
+	def __init__(self,*args,**kwargs):
+		self.update(*args,**kwargs)
+
+	def update(self, pref_type_id=None, weight_num=None, weight_value=None):
+		if pref_type_id is not None: self.pref_type_id = pref_type_id
+		if weight_num is not None: self.weight_num = weight_num
+		if weight_value is not None: self.weight_value = weight_value
 
 ##--##
 

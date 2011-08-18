@@ -24,8 +24,6 @@ from sqlalchemy.orm.exc import NoResultFound
 from database import db_session as sess
 from datamodel import Course, Pref, TimePref, PrefType
 
-import cas
-
 @app.route('/courses')
 def list_courses():
 	require_auth('admin')

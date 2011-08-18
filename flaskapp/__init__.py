@@ -41,7 +41,8 @@ def shutdown_session(exception=None):
 	sess.remove()
 
 def install():
-	from datamodel import Base, User, PrefType
+	from database import engine
+	from datamodel import Base, User, PrefType, PrefWeight
 	Base.metadata.create_all(engine)
 
 	#Add initial admin user#
@@ -50,11 +51,36 @@ def install():
 
 	#add pref types
 	sess.add_all((
-		PrefType('Time'),
-		PrefType('Faculty'),
-		PrefType('Theme')
+		PrefType('Time','rank'),
+		PrefType('Faculty','weight'),
+		PrefType('Theme','weight')
 	))
 	sess.commit()
+
+
+	#and pref weights
+	sess.add_all((
+		PrefWeight(1,-1,.4),
+		PrefWeight(1,0,.1),
+		PrefWeight(1,1,.1),
+		PrefWeight(1,2,.3),
+		PrefWeight(1,3,.4),
+		PrefWeight(1,4,.5),
+		PrefWeight(2,0,.1),
+		PrefWeight(2,1,.2),
+		PrefWeight(2,2,.3),
+		PrefWeight(2,3,.4),
+		PrefWeight(2,4,.5),
+		PrefWeight(3,0,.1),
+		PrefWeight(3,1,.2),
+		PrefWeight(3,2,.3),
+		PrefWeight(3,3,.4),
+		PrefWeight(3,4,.5)
+	))
+
+	sess.commit()
+
+	#add pref_weights
 
 #setup static folder
 from werkzeug import SharedDataMiddleware
@@ -76,3 +102,5 @@ import user
 import cas #auth module
 import survey
 import courses
+import weights
+import mentors

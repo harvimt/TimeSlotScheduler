@@ -1,0 +1,117 @@
+<!--! vim: set syn=genshi: !-->
+<!--!
+Administer Pref Types and Weights
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+jquery heavy
+
+
+::Parameters::
+	`pref_types` 
+-->
+<html
+	xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:py="http://genshi.edgewall.org/"
+	xmlns:xi="http://www.w3.org/2001/XInclude"
+	xmlns:form="http://ns.discorporate.us/flatland/genshi"
+	>
+	<xi:include href="layout.html"/>
+
+	<head>
+		<title>Administer Survey Weights</title>
+
+	${jquery()}
+
+	<script type="text/javascript">
+		//<!--
+		$(document).ready(function(){
+			$("#pref_type_tmpl").template('pref_type');
+			$("#pref_weight_tmpl").template('pref_weight');
+			var pref_type_list = $('#pref_type_list')
+
+			$("#add_pref_type_btn").click(function(){
+				$.tmpl('pref_type', {index: pref_type_list.children('dl')})
+			});
+		});
+		//-->
+	</script>
+	</head>
+
+	<body>
+		<script id="pref_type_tmpl" type="text/x-jquery-tmpl">
+			<![CDATA[
+			<dl>
+				<label>
+					<dt>Pref Type Label: </dt>
+					<dd><input type="text" name="${index}_name"></dd>
+				</label>
+				<label>
+					<dt>Weight Type: </dt>
+					<dd>
+						<select name="${index}_weight_type">
+							<option value="weight" default="true">Weight</option>
+							<option value="rank">Rank</option>
+						</select>
+					</dd>
+				</label>
+					<dt>Weights</dt>
+					<dd><ul class="weights_list"></ul></dd>
+				<label>
+				</label>
+			</dl>
+			]]>
+		</script>
+		<script id="pref_weight_tmpl" type="text/x-jquery-tmpl">
+			<li>
+				<input type="text" name="${pt_index}_weights_${wt_index}_weight_value"/>
+			</li>
+
+		</script>
+		<form
+			method="POST"
+			action="${url_for('admin_weights')}"
+			form:bind="pref_types"
+			id="pref_type_list"
+			>
+			<form:with auto_domid="on" auto_for="on">
+				<input type="hidden" name="_csrf_token" value="${csrf_token()}"/>
+				<dl py:for="pref_type in pref_types">
+					<?python el=pref_type['pref_type_id']?>
+					<input type="hidden" form:bind="el"/>
+
+					<?python el=pref_type['name']?>
+					<label form:bind="el">
+						<dt>${el.label}</dt>
+						<dd> <input form:bind="el" /> </dd>
+					</label>
+
+					<?python el=pref_type['weight_type']?>
+					<label form:bind="el">
+						<dt>${el.label}: </dt>
+						<dd>
+							<select form:bind="el" >
+								<option value="weight" default="true">Weight</option>
+								<option value="rank">Rank</option>
+							</select>
+							${form_errors(el.errors)}
+						</dd>
+					</label>
+
+					<?python weights=pref_type['weights']?>
+					<dt>Weights</dt>
+					<dd>
+						<ul class="weights_list">
+							<li py:for="weight in weights">
+								<?python el=weight['weight_value']?>
+								<input form:bind="el" />
+								${form_errors(weight.errors)}
+								${form_errors(weight.weight_value.errors)}
+							</li>
+						</ul>
+					</dd>
+				</dl>
+				<button id="add_pref_type_btn" type="button" title="">++</button>
+			</form:with>
+		</form>
+	</body>
+</html>

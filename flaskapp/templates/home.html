@@ -19,10 +19,11 @@ Home Page
 	<body py:choose="user_type">
 		<div py:when="'admin'">
 			Welcome Administrator<br/>
-			<a href="#TODO">Administrate Survey</a>
-
-			<a href="${url_for('list_courses')}">Administrate Courses</a>
-			<a href="${url_for('list_users')}">Administrate Users</a>
+			<ul>
+				<!--!<li><a href="#TODO">Administrate Survey</a></li>-->
+				<li><a href="${url_for('list_courses')}">Administrate Courses</a></li>
+				<li><a href="${url_for('list_users')}">Administrate Users</a></li>
+			</ul>
 		</div>
 		<div py:when="'user'">
 			Welcome Mentor<br/>
