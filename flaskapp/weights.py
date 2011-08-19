@@ -43,7 +43,7 @@ class PrefTypeForm(Form):
 
 class PrefTypesForm(List.of(PrefTypeForm)): pass
 
-@app.route('/weights')
+@app.route('/weights',methods=['GET','POST'])
 def admin_weights():
 	require_auth('admin')
 	pref_types = sess.query(PrefType).outerjoin(PrefWeight).all()
@@ -63,18 +63,21 @@ def admin_weights():
 		del form_values['_csrf_token']
 		form.set_flat(form_values)
 
-		if form.validate():
+		form.validate()
+		if form.valid:
 
+			pref_type_ids = []
 			for pref_type in form:
-				pref_types_ids = []
-				if pref_type['pref_type_id'] is None:
+				if pref_type['pref_type_id'].value is None:
 					pref_type_sqla = PrefType(pref_type.value)
-					for i, weight in enumerate(weights):
+
+					for i, weight in enumerate(pref_type['weights']):
 						weight_sqla = PrefWeight(weight.value)
 						weight_sqla.weight_num = i
 
 						sess.add(weight_sqla)
 						pref_type_sqla.weights.append(weight_sql)
+
 					sess.add(pref_type_sqla)
 				else:
 					pref_type_sqla = sess.query(PrefType).get(pref_type['pref_type_id'].value)
@@ -90,7 +93,7 @@ def admin_weights():
 					#add empty weight to end of array for each new weight added in the form not in SQLA
 					if len(pref_type['weights']) > len(pref_type_sqla.weights):
 						for i in range(len(pref_type['weights']) - len(pref_type_sqla.weights)):
-							new_weight = PrefWeight(weight_num = len(pref_type.sqla.weights) + i)
+							new_weight = PrefWeight(weight_num = len(pref_type_sqla.weights) + i)
 							sess.add(new_weight)
 							pref_type_sqla.weights.append(new_weight)
 
@@ -98,10 +101,19 @@ def admin_weights():
 					for weight, weight_sqla in zip(pref_type['weights'], pref_type_sqla.weights):
 						weight_sqla.update(weight.value)
 
-					pref_type_ids.append(pref_type['pref_type_id'])
+					pref_type_ids.append(pref_type['pref_type_id'].value)
+
+			#delete PrefTypes
+			if pref_type_ids:
+				#app.logger.debug('ids: %r' % pref_type_ids)
+				sess.query(PrefType).filter(~PrefType.pref_type_id.in_(pref_type_ids)).delete()
+
 			sess.commit()
 			flash('Successfully Edited Preference Types & Weights')
 		else:
+			app.logger.debug(repr(all_fl_errors(form)))
 			flash('Form Validation Failed','error')
+
+		app.logger.debug('valid %r', form.valid)
 
 	return render_response('admin_weights.html', dict(pref_types=form))
