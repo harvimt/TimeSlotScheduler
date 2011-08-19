@@ -101,7 +101,7 @@ def admin_weights():
 					pref_type_ids.append(pref_type['pref_type_id'])
 			sess.commit()
 			flash('Successfully Edited Preference Types & Weights')
-	else:
-		flash('Form Validation Failed','error')
+		else:
+			flash('Form Validation Failed','error')
 
 	return render_response('admin_weights.html', dict(pref_types=form))
