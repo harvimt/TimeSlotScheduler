@@ -33,7 +33,7 @@ $(document).ready(function(){
 	};
 	add_weight_btn_click = function(){
 		var weights_list = $(this).parent().children('.weights_list');
-		var pt_index = $(this).parent().parent().index() - 1;
+		var pt_index = $(this).parent().parent().index();
 		var wt_index = weights_list.children().length;
 		var new_weight = $.tmpl('pref_weight', {pt_index:pt_index,wt_index:wt_index});
 
