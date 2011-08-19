@@ -34,9 +34,7 @@ I wanted to play with jquery-datalink, but it's not stable yet.
 		${jquery_tmpl()}
 
 		<script type="text/javascript" src="admin_weights.js"></script>
-	</head>
 
-	<body>
 		<script id="pref_type_tmpl" type="text/x-jquery-tmpl">
 			<?python m="""
 			<dl>
@@ -53,15 +51,15 @@ I wanted to play with jquery-datalink, but it's not stable yet.
 						</select>
 					</dd>
 				</label>
+				<label>
+					<dt> Default Weight Value </dt>
+					<dd> <input type="text" name="${index}_def_weight_val"/> </dd>
+				</label>
 				<dt>Weights</dt>
 				<dd>
 					<ol class="weights_list"></ol>
 					<button class="add_weight_btn" type="button">+</button>
 				</dd>
-				<label>
-					<dt> Default Weight Value </dt>
-					<dd> <input type="text" name="${index}_def_weight_val"/> </dd>
-				</label>
 				<button class="del_pref_type_btn" type="button">--</button>
 			</dl>
 			"""?>
@@ -76,6 +74,9 @@ I wanted to play with jquery-datalink, but it's not stable yet.
 			"""?>
 			${Markup(m)}
 		</script>
+	</head>
+	<body>
+		<h1>Administer Survey Weights</h1>
 		<form
 			method="POST"
 			action="${url_for('admin_weights')}"
