@@ -48,24 +48,15 @@ def admin_weights():
 	require_auth('admin')
 	pref_types = sess.query(PrefType).outerjoin(PrefWeight).all()
 
-	form = PrefTypesForm()
-
-	for pref_type in pref_types:
-		i_form = PrefTypeForm.from_object(pref_type)
-		for weight in pref_type.weights:
-			i_form['weights'].append(PrefWeightForm.from_object(weight))
-
-		form.append(i_form)
-
 	#Handle Form Submission
 	if request.method == 'POST':
 		form_values = request.form.copy()
 		del form_values['_csrf_token']
-		form.set_flat(form_values)
 
+		form = PrefTypesForm.from_flat(form_values)
 		form.validate()
-		if form.valid:
 
+		if form.valid:
 			pref_type_ids = []
 			for pref_type in form:
 				if pref_type['pref_type_id'].value is None:
@@ -77,7 +68,7 @@ def admin_weights():
 						weight_sqla.weight_num = i
 
 						sess.add(weight_sqla)
-						pref_type_sqla.weights.append(weight_sql)
+						pref_type_sqla.weights.append(weight_sqla)
 
 				else:
 					pref_type_sqla = sess.query(PrefType).get(pref_type['pref_type_id'].value)
@@ -104,7 +95,7 @@ def admin_weights():
 
 					pref_type_ids.append(pref_type['pref_type_id'].value)
 
-				app.logger.debug('ptype: %r' % pref_type_sqla)
+				app.logger.debug('ptype.weights: %r' % pref_type_sqla.weights)
 
 			#delete PrefTypes
 			if pref_type_ids:
@@ -123,6 +114,17 @@ def admin_weights():
 		else:
 			#app.logger.debug(repr(all_fl_errors(form)))
 			flash('Form Validation Failed','error')
+	else:
+		form = PrefTypesForm()
+
+		#load values from SQLAlchemy into Flatland
+		for pref_type in pref_types:
+			i_form = PrefTypeForm.from_object(pref_type)
+			for weight in pref_type.weights:
+				i_form['weights'].append(PrefWeightForm.from_object(weight))
+
+			form.append(i_form)
+
 
 		#app.logger.debug('valid %r', form.valid)
 
