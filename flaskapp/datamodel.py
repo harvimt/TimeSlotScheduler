@@ -73,10 +73,11 @@ class PrefType(Base):
 
 		self.update(*args,**kwargs)
 
-	def update(self,name=None,weight_type=None,def_weight_val=None):
+	def update(self,name=None,weight_type=None,def_weight_val=None,weights=None,pref_type_id=None):
 		if name is not None: self.name = name
 		if weight_type is not None: self.weight_type = weight_type
 		if def_weight_val is not None: self.def_weight_val = def_weight_val
+		#NOTE no way to handle `weights`, `pref_type_id` in a nice way
 
 	def __repr__(self):
 		return "<PrefType id=%s name=%s>" % (self.pref_type_id, self.name)

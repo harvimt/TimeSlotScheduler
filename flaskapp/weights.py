@@ -69,10 +69,10 @@ def admin_weights():
 			pref_type_ids = []
 			for pref_type in form:
 				if pref_type['pref_type_id'].value is None:
-					pref_type_sqla = PrefType(pref_type.value)
+					pref_type_sqla = PrefType(**pref_type.value)
 
 					for i, weight in enumerate(pref_type['weights']):
-						weight_sqla = PrefWeight(weight.value)
+						weight_sqla = PrefWeight(**weight.value)
 						weight_sqla.weight_num = i
 
 						sess.add(weight_sqla)
@@ -81,7 +81,7 @@ def admin_weights():
 					sess.add(pref_type_sqla)
 				else:
 					pref_type_sqla = sess.query(PrefType).get(pref_type['pref_type_id'].value)
-					pref_type_sqla.update(pref_type.value)
+					pref_type_sqla.update(**pref_type.value)
 
 					#delete any trailing weights in db that aren't in the form
 					if len(pref_type['weights']) < len(pref_type_sqla.weights):
@@ -99,21 +99,29 @@ def admin_weights():
 
 					#update values in sqlalchemy based on form values now that both arrays are the same size
 					for weight, weight_sqla in zip(pref_type['weights'], pref_type_sqla.weights):
-						weight_sqla.update(weight.value)
+						weight_sqla.update(**weight.value)
 
 					pref_type_ids.append(pref_type['pref_type_id'].value)
+
+				app.logger.debug('ptype: %r' % pref_type_sqla)
 
 			#delete PrefTypes
 			if pref_type_ids:
 				#app.logger.debug('ids: %r' % pref_type_ids)
-				sess.query(PrefType).filter(~PrefType.pref_type_id.in_(pref_type_ids)).delete()
+
+				#why can't I just do .delete() again oh cryptic error message?
+				ptypes_to_del = sess.query(PrefType).\
+					filter( ~PrefType.pref_type_id.in_( pref_type_ids ) ).\
+					all()
+				for ptype_to_del in ptypes_to_del:
+					sess.delete(ptype_to_del)
 
 			sess.commit()
 			flash('Successfully Edited Preference Types & Weights')
 		else:
-			app.logger.debug(repr(all_fl_errors(form)))
+			#app.logger.debug(repr(all_fl_errors(form)))
 			flash('Form Validation Failed','error')
 
-		app.logger.debug('valid %r', form.valid)
+		#app.logger.debug('valid %r', form.valid)
 
 	return render_response('admin_weights.html', dict(pref_types=form))
