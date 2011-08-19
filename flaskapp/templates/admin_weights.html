@@ -13,6 +13,8 @@ jquery templates and genshi templates both use ${name} so awkward escaping is ne
 The jQuery adds/removes elements from the form and renames them so that they keep with flatlands flatnames
 I'm not sure whether this is super-hackish or really elegant
 
+I wanted to play with jquery-datalink, but it's not stable yet.
+
 ::Parameters::
 	`pref_types` weights.PrefTypesForm
 -->
@@ -56,6 +58,10 @@ I'm not sure whether this is super-hackish or really elegant
 					<ol class="weights_list"></ol>
 					<button class="add_weight_btn" type="button">+</button>
 				</dd>
+				<label>
+					<dt> Default Weight Value </dt>
+					<dd> <input type="text" name="${index}_def_weight_val"/> </dd>
+				</label>
 				<button class="del_pref_type_btn" type="button">--</button>
 			</dl>
 			"""?>
@@ -98,6 +104,12 @@ I'm not sure whether this is super-hackish or really elegant
 								</select>
 								${form_errors(el.errors)}
 							</dd>
+						</label>
+
+						<?python el=pref_type['def_weight_val']?>
+						<label form:bind="el">
+							<dt>${el.label}</dt>
+							<dd> <input form:bind="el" /> </dd>
 						</label>
 
 						<?python weights=pref_type['weights']?>

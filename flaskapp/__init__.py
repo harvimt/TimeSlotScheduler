@@ -51,18 +51,17 @@ def install():
 
 	#add pref types
 	sess.add_all((
-		PrefType('Time','rank'),
-		PrefType('Faculty','weight'),
-		PrefType('Theme','weight')
+		PrefType('Time',    'rank',   .3),
+		PrefType('Faculty', 'weight', .3),
+		PrefType('Theme',   'weight', .3)
 	))
 	sess.commit()
 
 
 	#and pref weights
 	sess.add_all((
-		PrefWeight(1,-1,.4),
 		PrefWeight(1,0,.1),
-		PrefWeight(1,1,.1),
+		PrefWeight(1,1,.2),
 		PrefWeight(1,2,.3),
 		PrefWeight(1,3,.4),
 		PrefWeight(1,4,.5),

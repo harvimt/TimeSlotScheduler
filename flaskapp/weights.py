@@ -37,6 +37,8 @@ class PrefTypeForm(Form):
 	pref_type_id = Integer.using(optional=True)
 	name = String.using(label="Pref Type Name",   validators=[NoLongerThan(32)])
 	weight_type = Enum.using(label="Weight Type", valid_values=['rank','weight'])
+	def_weight_val = Float.using(label="Default Weight Value")
+
 	weights = List.using(label="Weights").of(PrefWeightForm)
 
 class PrefTypesForm(List.of(PrefTypeForm)): pass
@@ -47,7 +49,6 @@ def admin_weights():
 	pref_types = sess.query(PrefType).outerjoin(PrefWeight).all()
 
 	form = PrefTypesForm()
-	#app.logger.debug('FType: %s' % type(form))
 
 	for pref_type in pref_types:
 		i_form = PrefTypeForm.from_object(pref_type)
@@ -56,6 +57,7 @@ def admin_weights():
 
 		form.append(i_form)
 
+	#Handle Form Submission
 	if request.method == 'POST':
 		form_values = request.form.copy()
 		del form_values['_csrf_token']
