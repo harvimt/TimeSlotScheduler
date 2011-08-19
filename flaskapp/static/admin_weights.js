@@ -15,8 +15,8 @@ $(document).ready(function(){
 	add_pref_type_btn_click = function(){
 		var new_pref_type = $.tmpl('pref_type', {index: pref_type_list.children('dl').length});
 
-		new_pref_type.contents('.del_pref_type_btn').click(del_pref_type_btn_click)
-		new_pref_type.contents('.add_weight_btn').click(add_pref_type_btn_click)
+		new_pref_type.find('.del_pref_type_btn').click(del_pref_type_btn_click)
+		new_pref_type.find('.add_weight_btn').click(add_weight_btn_click)
 
 		new_pref_type.appendTo(pref_type_list)
 	};
