@@ -1,6 +1,7 @@
 env/
+.directory
 *.pyc
 .*.swp
 .*.swo
-.directory
-data.db
+*.csv
+*.db
