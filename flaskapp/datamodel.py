@@ -69,7 +69,7 @@ class PrefType(Base):
 
 	def __init__(self,*args,**kwargs):
 		self.weight_type = 'weight'
-		self.weights = []
+		#self.weights = []
 
 		self.update(*args,**kwargs)
 

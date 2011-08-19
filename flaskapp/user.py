@@ -167,7 +167,7 @@ def edit_user(username):
 
 	form = EditUserForm()
 	form.set_by_object(user)
-	app.logger.debug('(Post-Set) form=%r, valid=%r,errors=%r' % (form,form.valid,form.errors))
+	#app.logger.debug('(Post-Set) form=%r, valid=%r,errors=%r' % (form,form.valid,all_fl_errors(form.errors)))
 
 	if request.method == 'POST':
 		values = request.form.copy()
@@ -188,9 +188,9 @@ def edit_user(username):
 
 		else:
 			user.update(**form.value)
-			app.logger.debug('user=%r' % user)
-			app.logger.debug('dirty: %r' % sess.dirty)
-			app.logger.debug('id_modified=%r' % sess.is_modified(user))
+			#app.logger.debug('user=%r' % user)
+			#app.logger.debug('dirty: %r' % sess.dirty)
+			#app.logger.debug('id_modified=%r' % sess.is_modified(user))
 			sess.commit()
 			flash('Successfully Updated User Info')
 

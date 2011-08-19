@@ -71,6 +71,7 @@ def admin_weights():
 				if pref_type['pref_type_id'].value is None:
 					pref_type_sqla = PrefType(**pref_type.value)
 
+					sess.add(pref_type_sqla)
 					for i, weight in enumerate(pref_type['weights']):
 						weight_sqla = PrefWeight(**weight.value)
 						weight_sqla.weight_num = i
@@ -78,7 +79,6 @@ def admin_weights():
 						sess.add(weight_sqla)
 						pref_type_sqla.weights.append(weight_sql)
 
-					sess.add(pref_type_sqla)
 				else:
 					pref_type_sqla = sess.query(PrefType).get(pref_type['pref_type_id'].value)
 					pref_type_sqla.update(**pref_type.value)
@@ -94,8 +94,9 @@ def admin_weights():
 					if len(pref_type['weights']) > len(pref_type_sqla.weights):
 						for i in range(len(pref_type['weights']) - len(pref_type_sqla.weights)):
 							new_weight = PrefWeight(weight_num = len(pref_type_sqla.weights) + i)
-							sess.add(new_weight)
+							app.logger.debug('adding new weight %r' % new_weight)
 							pref_type_sqla.weights.append(new_weight)
+							#sess.add(new_weight)
 
 					#update values in sqlalchemy based on form values now that both arrays are the same size
 					for weight, weight_sqla in zip(pref_type['weights'], pref_type_sqla.weights):
@@ -118,6 +119,7 @@ def admin_weights():
 
 			sess.commit()
 			flash('Successfully Edited Preference Types & Weights')
+			return redirect(url_for('admin_weights'))
 		else:
 			#app.logger.debug(repr(all_fl_errors(form)))
 			flash('Form Validation Failed','error')
