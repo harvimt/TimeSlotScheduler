@@ -1,9 +1,9 @@
-# 
+#coding=UTF-8
 """
 Administrate Preference Weights
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:Copyright (c) 2011 Mark Harviston <infinull@gmail.com>
+:Copyright © 2011 Mark Harviston <infinull@gmail.com>
 
  * Display the list of pref_types and weights
  * NOTE does not enforce PrefType safety
@@ -57,11 +57,49 @@ def admin_weights():
 		form.append(i_form)
 
 	if request.method == 'POST':
-		flash('submitted form') #TODO
+		form_values = request.form.copy()
+		del form_values['_csrf_token']
+		form.set_flat(form_values)
 
-	#for pref_type in form:
-		#app.logger.debug('Name: %s ' % pformat(pref_type['name']))
-		#app.logger.debug('Label: %s ' % pformat(pref_type['name'].label))
+		if form.validate():
 
-	#return render_response('debug.html',dict(message='foo'))
+			for pref_type in form:
+				pref_types_ids = []
+				if pref_type['pref_type_id'] is None:
+					pref_type_sqla = PrefType(pref_type.value)
+					for i, weight in enumerate(weights):
+						weight_sqla = PrefWeight(weight.value)
+						weight_sqla.weight_num = i
+
+						sess.add(weight_sqla)
+						pref_type_sqla.weights.append(weight_sql)
+					sess.add(pref_type_sqla)
+				else:
+					pref_type_sqla = sess.query(PrefType).get(pref_type['pref_type_id'].value)
+					pref_type_sqla.update(pref_type.value)
+
+					#delete any trailing weights in db that aren't in the form
+					if len(pref_type['weights']) < len(pref_type_sqla.weights):
+						sess.query(PrefWeight).\
+							filter(PrefWeight.pref_type_id == pref_type_sqla.pref_type_id).\
+							filter(PrefWeight.weight_num >= len(pref_type['weights'])).\
+							delete()
+
+					#add empty weight to end of array for each new weight added in the form not in SQLA
+					if len(pref_type['weights']) > len(pref_type_sqla.weights):
+						for i in range(len(pref_type['weights']) - len(pref_type_sqla.weights)):
+							new_weight = PrefWeight(weight_num = len(pref_type.sqla.weights) + i)
+							sess.add(new_weight)
+							pref_type_sqla.weights.append(new_weight)
+
+					#update values in sqlalchemy based on form values now that both arrays are the same size
+					for weight, weight_sqla in zip(pref_type['weights'], pref_type_sqla.weights):
+						weight_sqla.update(weight.value)
+
+					pref_type_ids.append(pref_type['pref_type_id'])
+			sess.commit()
+			flash('Successfully Edited Preference Types & Weights')
+	else:
+		flash('Form Validation Failed','error')
+
 	return render_response('admin_weights.html', dict(pref_types=form))

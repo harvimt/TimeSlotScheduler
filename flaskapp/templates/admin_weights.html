@@ -3,12 +3,20 @@
 Administer Pref Types and Weights
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-jquery heavy
+:Copyright © 2011 Mark Harviston <infinull@gmail.com>
 
+JQuery Heavy
+
+Templates duplicated once in genshi, and another time as jquery Templates
+jquery templates and genshi templates both use ${name} so awkward escaping is needed
+
+The jQuery adds/removes elements from the form and renames them so that they keep with flatlands flatnames
+I'm not sure whether this is super-hackish or really elegant
 
 ::Parameters::
-	`pref_types` 
+	`pref_types` weights.PrefTypesForm
 -->
+<?python from genshi import Markup?>
 <html
 	xmlns="http://www.w3.org/1999/xhtml"
 	xmlns:py="http://genshi.edgewall.org/"
@@ -20,30 +28,19 @@ jquery heavy
 	<head>
 		<title>Administer Survey Weights</title>
 
-	${jquery()}
+		${jquery()}
+		${jquery_tmpl()}
 
-	<script type="text/javascript">
-		//<!--
-		$(document).ready(function(){
-			$("#pref_type_tmpl").template('pref_type');
-			$("#pref_weight_tmpl").template('pref_weight');
-			var pref_type_list = $('#pref_type_list')
-
-			$("#add_pref_type_btn").click(function(){
-				$.tmpl('pref_type', {index: pref_type_list.children('dl')})
-			});
-		});
-		//-->
-	</script>
+		<script type="text/javascript" src="admin_weights.js"></script>
 	</head>
 
 	<body>
 		<script id="pref_type_tmpl" type="text/x-jquery-tmpl">
-			<![CDATA[
+			<?python m="""
 			<dl>
 				<label>
 					<dt>Pref Type Label: </dt>
-					<dd><input type="text" name="${index}_name"></dd>
+					<dd><input type="text" name="${index}_name"/></dd>
 				</label>
 				<label>
 					<dt>Weight Type: </dt>
@@ -54,64 +51,75 @@ jquery heavy
 						</select>
 					</dd>
 				</label>
-					<dt>Weights</dt>
-					<dd><ul class="weights_list"></ul></dd>
-				<label>
-				</label>
+				<dt>Weights</dt>
+				<dd>
+					<ol class="weights_list"></ol>
+					<button class="add_weight_btn" type="button">+</button>
+				</dd>
+				<button class="del_pref_type_btn" type="button">--</button>
 			</dl>
-			]]>
+			"""?>
+			${Markup(m)}
 		</script>
 		<script id="pref_weight_tmpl" type="text/x-jquery-tmpl">
+			<?python m="""
 			<li>
 				<input type="text" name="${pt_index}_weights_${wt_index}_weight_value"/>
+				<button class="del_weight_btn" type="button">-</button>
 			</li>
-
+			"""?>
+			${Markup(m)}
 		</script>
 		<form
 			method="POST"
 			action="${url_for('admin_weights')}"
 			form:bind="pref_types"
-			id="pref_type_list"
 			>
 			<form:with auto_domid="on" auto_for="on">
 				<input type="hidden" name="_csrf_token" value="${csrf_token()}"/>
-				<dl py:for="pref_type in pref_types">
-					<?python el=pref_type['pref_type_id']?>
-					<input type="hidden" form:bind="el"/>
+				<div id="pref_type_list">
+					<dl py:for="pref_type in pref_types">
+						<?python el=pref_type['pref_type_id']?>
+						<input type="hidden" form:bind="el"/>
 
-					<?python el=pref_type['name']?>
-					<label form:bind="el">
-						<dt>${el.label}</dt>
-						<dd> <input form:bind="el" /> </dd>
-					</label>
+						<?python el=pref_type['name']?>
+						<label form:bind="el">
+							<dt>${el.label}</dt>
+							<dd> <input form:bind="el" /> </dd>
+						</label>
 
-					<?python el=pref_type['weight_type']?>
-					<label form:bind="el">
-						<dt>${el.label}: </dt>
+						<?python el=pref_type['weight_type']?>
+						<label form:bind="el">
+							<dt>${el.label}: </dt>
+							<dd>
+								<select form:bind="el" >
+									<option value="weight" default="true">Weight</option>
+									<option value="rank">Rank</option>
+								</select>
+								${form_errors(el.errors)}
+							</dd>
+						</label>
+
+						<?python weights=pref_type['weights']?>
+						<dt>Weights</dt>
 						<dd>
-							<select form:bind="el" >
-								<option value="weight" default="true">Weight</option>
-								<option value="rank">Rank</option>
-							</select>
-							${form_errors(el.errors)}
+							<ol class="weights_list">
+								<li py:for="weight in weights">
+									<?python el=weight['weight_value']?>
+									<input form:bind="el" />
+									${form_errors(weight.errors)}
+									${form_errors(weight.weight_value.errors)}
+									<button type="button" class="del_weight_btn">-</button>
+								</li>
+							</ol>
+							<button type="button" class="add_weight_btn">+</button>
 						</dd>
-					</label>
-
-					<?python weights=pref_type['weights']?>
-					<dt>Weights</dt>
-					<dd>
-						<ul class="weights_list">
-							<li py:for="weight in weights">
-								<?python el=weight['weight_value']?>
-								<input form:bind="el" />
-								${form_errors(weight.errors)}
-								${form_errors(weight.weight_value.errors)}
-							</li>
-						</ul>
-					</dd>
-				</dl>
-				<button id="add_pref_type_btn" type="button" title="">++</button>
+						<button type="button" class="del_pref_type_btn">--</button>
+					</dl>
+				</div>
 			</form:with>
+			<button id="add_pref_type_btn" type="button" title="">++</button>
+			<button type="submit">Save</button>
 		</form>
 	</body>
 </html>
