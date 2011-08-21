@@ -225,7 +225,11 @@ class TimePref(Pref):
 			if self.Sa: days+='Sa'
 			if self.Su: days+='Su'
 
-			self.name = '%s %s-%s' % (days, self.start_time.strftime('%H%M'), self.stop_time.strftime('%H%M'))
+			if self.start_time is None or self.stop_time is None:
+				self.name = None
+				return
+
+			self.name = '{0} {1.hour:d}{1.minute:02d}-{2.hour:d}{2.minute:02d}'.format(days, self.start_time, self.stop_time)
 
 			if self.time_type == 'hybrid':
 				self.name += '/HYBRID'
@@ -236,7 +240,7 @@ class TimePref(Pref):
 		if name == 'WEB':
 			self.time_type = 'online'
 		else:
-			match = re.match(r'(([MTWRF]|Sa|Su)+) (\d+) *- *(\d+)(/HYBRID)?',time_name)
+			match = re.match(r'(([MTWRF]|Sa|Su)+) (\d+) *- *(\d+)(/HYBRID)?',name)
 
 			days = match.group(1)
 			for day in self.bfieldmap.keys():
@@ -258,7 +262,7 @@ class TimePref(Pref):
 				self.time_type = 'hybrid'
 
 		self.update_name()
-		if self.name == name:
+		if self.name != name:
 			raise Exception('Name (%s) does not match name (%s) after parse' % (self.name, name))
 
 	bfieldmap = dict(
