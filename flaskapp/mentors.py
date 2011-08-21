@@ -25,4 +25,10 @@ from datamodel import Mentor, Pref, TimePref, PrefType
 
 @app.route('/mentors')
 def list_mentors():
-	pass
+	require_auth('admin')
+
+	pref_types = sess.query(PrefTypes).all()
+	prefs = sess.query(Pref).all()
+
+	mentors = sess.query(Mentor).all()
+	return render_response('list_mentors.html',locals()) #TODO get rid of locals call?

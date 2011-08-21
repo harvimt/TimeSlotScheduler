@@ -11,11 +11,11 @@ Upload a courses CSV File
 	<xi:include href="layout.html"/>
 
 	<head>
-		<title>Upload Banweb-Style Courses</title>
+		<title>Upload Flat Courses</title>
 	</head>
 
 	<body>
-		<h1>Upload Banweb-Style Courses</h1>
+		<h1>Upload Flat Courses File — One row per course</h1>
 		<form method="POST" action="${url_for('upload_courses')}" enctype="multipart/form-data">
 			<input type="hidden" name="_csrf_token" value="${csrf_token()}"/>
 			<input type="file" name="courses_file"/>

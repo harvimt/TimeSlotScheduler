@@ -51,22 +51,33 @@ def get_pref(pref_type, pref_name):
 			raise Exception('pref_type %s not found' % pref_type)
 		pref.pref_type_id = pref_type_id.pref_type_id
 		pref.name = pref_name
-		sess.add(pref)
-		sess.commit()
+		#sess.add(pref)
+		#sess.commit()
 		get_pref.prefs[(pref_type,pref_name)] = pref
 
 		#app.logger.debug('Adding pref %r to the db' % pref)
 		return pref
 
-get_pref.prefs = {}
 
 def get_time(days_bfield, start_time, stop_time):
 	id_tuple = (days_bfield, start_time, stop_time)
+	
+	if start_time == 'WEB':
+		if get_time.web_time is not None: return get_time.web_time
+
+		try:
+			time = time.sess.query(TimePref).filter_by(time_type='online').one()
+		except NoResultFound:
+			time = TimePref(time_type='online')
+			#sess.add(time)
+		get_time.web_time = time
+		return time
 
 	if id_tuple in get_time.times:
 		time = get_time.times[id_tuple]
 		app.logger.debug('found time %r in the cache' % time)
 		return time
+
 
 	days_dict = bfield2dict(days_bfield)
 	start_time = timestr2time(str(start_time))
@@ -90,14 +101,13 @@ def get_time(days_bfield, start_time, stop_time):
 		time.stop_time = stop_time
 		time.update(Sa=False,Su=False,**days_dict)
 
-		sess.add(time)
+		#sess.add(time)
 		app.logger.debug('Adding time %r to the db' % time)
-		sess.commit()
+		#sess.commit()
 
 		get_time.times[id_tuple] = time
 		return time
 
-get_time.times = {}
 
 """Map weekday name to short name"""
 dayl2s=dict(
@@ -149,11 +159,11 @@ def timestr2time(timestr):
 
 @app.route('/courses/upload', methods=['POST','GET'])
 def upload_courses():
+	"""Upload Courses from banweb dump, "folding" mentored inquiries for each course into the course"""
 	require_auth('admin')
 
 	if request.method == 'POST':
-		#TODO process form
-		messsage = '?'
+		reset_memo_cache()
 
 		reader = csv.DictReader(request.files['courses_file'])
 		courses = {} #row of tuples, first value contains a master row
@@ -163,9 +173,9 @@ def upload_courses():
 		sess.query(TimePref).delete()
 		sess.query(Pref).delete()
 
-		#1st pass group MENTORED INQUERY with main course
+		#1st pass group MENTORED INQUIRY with main course
 		for row in reader:
-			if row['CATALOG TITLE'] == 'MENTORED INQUIRY':
+			if 'MENTORED INQUIRY' in row['CATALOG TITLE'] or 'MENT INQ' in row['CATALOG TITLE']:
 				#attach mentored inquiry to assoc. course
 				course_no = row['COURSE NO']
 
@@ -184,7 +194,7 @@ def upload_courses():
 			course.prefs = []
 
 			#handle faculty pref
-			faculty_name = master_course['INSTR FIRST NAME'] + ' ' + master_course['INSTR LAST NAME']
+			faculty_name = master_course['INSTR LAST NAME'] + ', ' + master_course['INSTR FIRST NAME']
 
 			faculty_pref = get_pref('Faculty', faculty_name)
 
@@ -213,3 +223,53 @@ def upload_courses():
 	else:
 		#display form
 		return render_response('upload_courses.html')
+
+def get_time_by_obj(time_obj):
+	if time_obj.name in get_time_by_obj.times:
+		return get_time_by_obj.times[time_obj.name]
+
+	try:
+		time = sess.query(TimePref).filter_by(name=time_obj.name).one()
+	except NoResultFound:
+		time = time_obj
+
+	get_time_by_obj.times[time.name] = time
+	return time
+
+def reset_memo_cache():
+	"""reset the memoization cache for various get_* functions"""
+	get_pref.prefs = {}
+	get_time.times = {}
+	get_time.web_time = None
+	get_time_by_obj.times = {}
+
+@app.route('/courses/upload_flat', methods=['GET','POST'])
+def upload_courses_flat():
+	"""Upload "flat" courses file, one row per course"""
+	require_auth('admin')
+
+	if request.method == 'POST':
+		reset_memo_cache()
+
+		reader = csv.DictReader(request.files['courses_file'])
+		for row in reader:
+			course = Course()
+			course.crn = row['CRN']
+
+			theme_name = row['Theme']
+			faculty_name = row['Faculty Last Name'] + ', ' + row['Faculty First Name']
+			course.prefs.append( get_pref('Theme', theme_name) )
+			course.prefs.append( get_pref('Faculty', faculty_name) )
+
+			time = TimePref()
+			time.parse_name( row['Corresponding Time'] )
+			time = get_time_by_obj(time)
+			course.time = time
+			sess.add(course)
+
+		sess.commit()
+
+		return redirect(url_for('list_courses'))
+	else:
+		return render_response('upload_courses_flat.html')
+

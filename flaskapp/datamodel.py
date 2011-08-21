@@ -9,7 +9,7 @@ Helper methods added as needed with very little symmetry
 
 """
 
-import datetime
+import datetime, re
 
 import sqlalchemy
 from sqlalchemy import Column, Integer, String, Boolean, Time, Enum, Sequence, ForeignKey, Float, Table
@@ -186,11 +186,12 @@ class TimePref(Pref):
 		#set defaults
 		self.time_type = 'normal'
 		self.M = self.T= self.W = self.R = self.F = self.Sa = self.Su = False
-		self.start_time = datetime.time.min
-		self.stop_time =  datetime.time.min
+		self.start_time = None
+		self.stop_time =  None
 
 		self.update(*args,**kwargs)
 		self.update_name()
+	
 	
 	def update(self,
 			time_type=None,
@@ -213,7 +214,7 @@ class TimePref(Pref):
 	def update_name(self):
 		""" still need to call session.save(self) in order to update db"""
 		if self.time_type == 'online':
-			self.name = 'ONLINE'
+			self.name = 'WEB'
 		else:
 			days=''
 			if self.M: days+='M'
@@ -224,11 +225,42 @@ class TimePref(Pref):
 			if self.Sa: days+='Sa'
 			if self.Su: days+='Su'
 
-			self.name = '%s %s-%s' % (days, self.start_time.strftime('%H:%M'), self.stop_time.strftime('%H:%M'))
+			self.name = '%s %s-%s' % (days, self.start_time.strftime('%H%M'), self.stop_time.strftime('%H%M'))
 
 			if self.time_type == 'hybrid':
-				self.name += ' HYBRID'
+				self.name += '/HYBRID'
 	
+	def parse_name(self,name):
+		""" turn """
+		self.name = name
+		if name == 'WEB':
+			self.time_type = 'online'
+		else:
+			match = re.match(r'(([MTWRF]|Sa|Su)+) (\d+) *- *(\d+)(/HYBRID)?',time_name)
+
+			days = match.group(1)
+			for day in self.bfieldmap.keys():
+				if day in days:
+					self.update(**{day:True})
+			
+			start_time = match.group(3)
+			start_time_hours, start_time_mins = int(start_time[0:-2]),int(start_time[-2:])
+
+			stop_time = match.group(4)
+			stop_time_hours, stop_time_mins = int(stop_time[0:-2]),int(stop_time[-2:])
+
+			self.start_time = datetime.time(start_time_hours, start_time_mins)
+			self.stop_time = datetime.time(stop_time_hours, stop_time_mins)
+
+			if match.group(5) is None:
+				self.time_type = 'normal'
+			else:
+				self.time_type = 'hybrid'
+
+		self.update_name()
+		if self.name == name:
+			raise Exception('Name (%s) does not match name (%s) after parse' % (self.name, name))
+
 	bfieldmap = dict(
 		M= 0b0000001,
 		T= 0b0000010,

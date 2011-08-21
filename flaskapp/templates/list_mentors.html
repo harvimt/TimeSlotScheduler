@@ -1,6 +1,6 @@
 <!--! vim: set syn=genshi: !-->
 <!--!
-A Course Listing (possibly filtered)
+A Mentor Listing (possibly filtered)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ::Parameters::
@@ -14,20 +14,20 @@ A Course Listing (possibly filtered)
 	<xi:include href="layout.html"/>
 
 	<head>
-		<title>Course Listing</title>
+		<title>Mentor Listing</title>
 	</head>
 
 	<body>
-		<a href="${url_for('upload_courses')}">Upload (Banweb-Style) Courses</a>
-		<a href="${url_for('upload_courses_flat')}">Upload (Flat) Courses</a>
-		<table id="course_listing" >
+		<a href="${url_for('upload_mentors')}">Upload Mentors</a>
+		<table id="mentor_listing" >
 			<thead>
-				<h2>Course Listing</h2>
+				<h2>Mentor Listing</h2>
 				<tr>
-					<th>CRN</th>
-					<th>Time</th>
-					<th>Theme</th>
-					<th>Faculty</th>
+					<th>Mentor Name</th>
+					<th py:for="pref_type in pref_types">${pref_type.name}</th>
+				</tr>
+				<tr>
+
 				</tr>
 			</thead>
 			<tbody>
