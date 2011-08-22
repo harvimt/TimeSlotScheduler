@@ -62,11 +62,13 @@ class EditUserForm(UserForm):
 	validators = [user_name_exists, odin_name_exists]
 
 ## Odin/LDAP helpers ##
+ldap_host = 'ldap.oit.pdx.edu'
 
 def ldap_up():
+	global ldap_host
 	r = False
 	try:
-		l = ldap.open('localhost')
+		l = ldap.open(ldap_host)
 		l.simple_bind()
 		r = True
 	except ldap.SERVER_DOWN:
@@ -78,8 +80,9 @@ def ldap_up():
 
 def get_odin(odin_name):
 	""" get odin information from LDAP """
+	global ldap_host
 	try:
-		l = ldap.open('localhost')
+		l = ldap.open(ldap_host)
 		l.simple_bind()
 
 		s = l.search_s("ou=people,dc=pdx,dc=edu",ldap.SCOPE_SUBTREE,'uid=%s' % odin_name, ['gecos','mailLocalAddress'])

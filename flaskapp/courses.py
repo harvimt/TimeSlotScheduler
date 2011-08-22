@@ -170,7 +170,7 @@ def upload_courses():
 		             #second value contains list of Mentored Inqueries
 
 		sess.query(Course).delete()
-		sess.query(TimePref).delete()
+		#sess.query(TimePref).delete()
 		sess.query(Pref).delete()
 
 		#1st pass group MENTORED INQUIRY with main course
