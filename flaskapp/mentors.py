@@ -19,23 +19,24 @@ from flask import session, request, url_for, redirect, abort, flash
 from flaskext.genshi import render_response
 from flaskapp.globals import *
 
-from flatland import Form, String, Constrained, Enum
+from flatland import Form, String, Constrained, Enum, Integer
 from flatland.validation import NoLongerThan
 from flatland.out.genshi import setup
 
 from sqlalchemy.orm.exc import NoResultFound
 from database import db_session as sess
-from datamodel import Mentor, Pref, PrefWeight, Choice
+from datamodel import Mentor, Pref, PrefWeight, Choice, PrefType
 
 @app.route('/mentors')
 def list_mentors():
 	require_auth('admin')
 
-	pref_types = sess.query(PrefTypes).all()
+	pref_types = sess.query(PrefType).all()
 	prefs = sess.query(Pref).all()
 
 	mentors = sess.query(Mentor).all()
-	return render_response('list_mentors.html',locals()) #TODO get rid of locals call?
+	return render_response('list_mentors.html',locals())
+	#return render_response('message.html',dict(title='List Mentors (no implemented)', message='<a href="/mentors/upload">Upload Mentors</a>'))
 
 class MentorsUploadForm(Form):
 	name_index = Integer.using(label="Column Index of Mentor's Name")
@@ -48,11 +49,15 @@ def upload_mentors():
 	require_auth('admin')
 
 	if request.method == 'POST':
-		form_values = request.form.copy
+		form_values = request.form.copy()
 		del form_values['_csrf_token']
 		form = MentorsUploadForm.from_flat(form_values)
 
-		locals().update(**form.value) #I'm feel, dirty, but not bad
+		name_index = form['name_index'].value
+		new_returning_index = form['new_returning_index'].value
+		pref_start_index = form['pref_start_index'].value
+		pref_stop_index = form['pref_stop_index'].value
+
 		reader = csv.reader(request.files['mentors_file'])
 
 		#skip first row which is worthless
@@ -61,6 +66,7 @@ def upload_mentors():
 
 		#save header row
 		header_row = i.next()
+		app.logger.debug('header_row len() = %i' % len(header_row))
 
 		for row in i:
 			mentor = Mentor()
@@ -69,16 +75,34 @@ def upload_mentors():
 			mentor.returning = bool(row[new_returning_index])
 
 			for pref_index in range(pref_start_index, pref_stop_index):
-				pref_name = header_row[pref_index].rsplit('...:')[2]
-				weight_num = int(row[pref_index])
+				app.logger.debug('pref_index=%i' % pref_index)
+
+				header_col = header_row[pref_index]
+				app.logger.debug('header_col=%s' % header_col)
+
+				pref_name = header_col.rsplit('...-')[1]
+
 
 				choice = Choice()
-				choice.pref = sess.query(Pref).filter_by(name=pref_name).one()
+				try:
+					choice.pref = sess.query(Pref).filter_by(name=pref_name).one()
+				except NoResultFound:
+					flash('Prefernce with name %r not found' % pref_name,'error')
+					continue
 
-				choice.weight = sess.query(PrefWeight).filter_by(
-					pref_type_id=chioce.pref.pref_type_id,
-					weight_num=weight_num
-				)
+				if row[pref_index] == '':
+					choice.weight = None
+				else:
+					weight_num = int(row[pref_index])
+					pref_type_id = choice.pref.pref_type_id
+
+					try:
+						choice.weight = sess.query(PrefWeight).filter_by(
+							pref_type_id=pref_type_id,
+							weight_num=weight_num
+						).one()
+					except NoResultFound:
+						choice.weight = None
 
 				mentor.choices.append(choice)
 
