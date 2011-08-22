@@ -31,10 +31,11 @@ from datamodel import Mentor, Pref, PrefWeight, Choice, PrefType
 def list_mentors():
 	require_auth('admin')
 
-	pref_types = sess.query(PrefType).all()
-	prefs = sess.query(Pref).all()
+	pref_types = sess.query(PrefType).outerjoin(Pref).order_by(Pref.pref_type_id,Pref.pref_id).all()
+	#map(pref_types,lambda x: sort(x.,lambda y,z: 
 
-	mentors = sess.query(Mentor).all()
+	mentors = sess.query(Mentor).outerjoin(Choice).join(Pref).outerjoin(PrefWeight).order_by(Pref.pref_type_id,Pref.pref_id).all()
+
 	return render_response('list_mentors.html',locals())
 	#return render_response('message.html',dict(title='List Mentors (no implemented)', message='<a href="/mentors/upload">Upload Mentors</a>'))
 
@@ -52,6 +53,8 @@ def upload_mentors():
 		form_values = request.form.copy()
 		del form_values['_csrf_token']
 		form = MentorsUploadForm.from_flat(form_values)
+		sess.query(Mentor).delete()
+		sess.commit()
 
 		name_index = form['name_index'].value
 		new_returning_index = form['new_returning_index'].value
@@ -90,10 +93,11 @@ def upload_mentors():
 					flash('Prefernce with name %r not found' % pref_name,'error')
 					continue
 
-				if row[pref_index] == '':
+				if row[pref_index] == '' or row[pref_index] == '0':
 					choice.weight = None
 				else:
-					weight_num = int(row[pref_index])
+					weight_num = int(row[pref_index]) - 1
+					assert(weight_num >= 0)
 					pref_type_id = choice.pref.pref_type_id
 
 					try:
@@ -108,6 +112,8 @@ def upload_mentors():
 
 			sess.add(mentor)
 		sess.commit()
+		flash('Successfully Uploaded Mentors')
+		return redirect(url_for('list_mentors'))
 
 	else:
 		form = MentorsUploadForm()

@@ -93,7 +93,7 @@ class Pref(Base):
 	pref_id = Column(Integer, Sequence('pref_id_seq'), primary_key = True)
 	pref_type_id = Column(Integer, ForeignKey('pref_types.pref_type_id'))
 
-	pref_type = relationship(PrefType,cascade='all, delete, delete-orphan')
+	pref_type = relationship(PrefType,backref=backref('prefs',cascade='all, delete, delete-orphan'))
 
 	name = Column(String(32))
 
@@ -117,7 +117,7 @@ class PrefWeight(Base):
 
 	pref_type_id = Column(Integer, ForeignKey('pref_types.pref_type_id'))
 
-	pref_type = relationship(PrefType,backref=backref('weights',order_by=weight_num),cascade='all,delete, delete-orphan')
+	pref_type = relationship(PrefType,backref=backref('weights',order_by=weight_num,cascade='all,delete, delete-orphan'))
 
 	__table_args__ = (UniqueConstraint(pref_type_id, weight_num),)
 
@@ -158,7 +158,7 @@ class Choice(Base):
 
 	pref = relationship(Pref)
 	weight = relationship(PrefWeight)
-	mentor = relationship(Mentor, backref=backref('choices'),cascade='all,delete, delete-orphan')
+	mentor = relationship(Mentor, backref=backref('choices',cascade='all,delete, delete-orphan'))
 
 ##--##
 
@@ -318,11 +318,11 @@ class Course(Base):
 	crn = Column(String(32))
 
 	time_id = Column(Integer, ForeignKey('times.pref_id'))
-	time = relationship(TimePref,cascade='delete, delete-orphan')
+	time = relationship(TimePref,cascade='delete, delete-orphan',single_parent=True)
 
 	prefs = relationship(Pref,
 			secondary=course2pref,
-			order_by=Pref.pref_id,cascade='delete, delete-orphan')
+			order_by=Pref.pref_id)
 
 	def prefs_as_dict(self):
 		r={}
@@ -332,7 +332,7 @@ class Course(Base):
 
 ##--##
 
-class Assignment(Base):
+class Assignment():
 	__tablename__ = 'schedule'
 
 	assn_id = Column(Integer, Sequence('assn_id_seq'), primary_key = True)

@@ -23,19 +23,22 @@ A Mentor Listing (possibly filtered)
 			<thead>
 				<h2>Mentor Listing</h2>
 				<tr>
-					<th>Mentor Name</th>
-					<th py:for="pref_type in pref_types">${pref_type.name}</th>
+					<th rowspan="2">Mentor Name</th>
+					<th py:for="pref_type in pref_types" colspan="${len(pref_type.prefs)}">${pref_type.name}</th>
 				</tr>
 				<tr>
-
+					<py:for each="pref_type in pref_types">
+						<th py:for="pref in pref_type.prefs">${pref.pref_id}</th>
+					</py:for>
 				</tr>
 			</thead>
 			<tbody>
-				<tr py:for="course in courses" py:with="prefs=course.prefs_as_dict()">
-					<td>${course.crn}</td>
-					<td>${course.time}</td>
-					<td>${prefs.Theme}</td>
-					<td>${prefs.Faculty}</td>
+				<tr py:for="mentor in mentors">
+					<td>${mentor.full_name}</td>
+					<td py:for="choice in mentor.choices">
+						<!--!${choice.weight.weight_num if choice.weight else 'Default'}-->
+						${choice.pref.name}
+					</td>
 				</tr>
 			</tbody>
 		</table>
