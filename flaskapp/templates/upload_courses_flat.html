@@ -16,6 +16,14 @@ Upload a courses CSV File
 
 	<body>
 		<h1>Upload Flat Courses File — One row per course</h1>
+		<h2>Header Column Names</h2>
+		<ul>
+			<li>Theme</li>
+			<li>Faculty Last Name</li>
+			<li>Faculty First Name</li>
+			<li>Corresponding Time</li>
+			<li>Assigned Mentor</li>
+		</ul>
 		<form method="POST" action="${url_for('upload_courses_flat')}" enctype="multipart/form-data">
 			<input type="hidden" name="_csrf_token" value="${csrf_token()}"/>
 			<input type="file" name="courses_file"/>
