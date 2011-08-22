@@ -39,7 +39,7 @@ Also includes some snippets
 	<py:match path="body" once="true" py:with="messages = get_flashed_messages(with_categories=True)">
 		<body py:attrs="select('@*')"><div id="wrap">
 			<div id="header">
-				<h1>UNSTMentor Scheduler</h1>
+				<h1><a href="/">UNSTMentor Scheduler</a></h1>
 				<div id="user_info">
 					<py:choose>
 						<py:when test="username is None">

@@ -28,7 +28,7 @@ from datamodel import Course, Pref, TimePref, PrefType
 def list_courses():
 	require_auth('admin')
 	courses = \
-		sess.query(Course).join(TimePref).join(Pref).join(PrefType).all()
+		sess.query(Course).outerjoin(TimePref).outerjoin(Pref).outerjoin(PrefType).all()
 	return render_response('list_courses.html',dict(courses=courses))
 
 def get_pref(pref_type, pref_name):
@@ -157,6 +157,19 @@ def timestr2time(timestr):
 
 	return datetime.time(hours,mins)
 
+def clear_course_pref_data():
+	"""Delete all Course, Pref, and TimePref Data"""
+
+	sess.query(Course).delete()
+
+	#deleting a child deletes it's parent entry, but deleting a parent doesn't delete the child entry
+	for tp in sess.query(TimePref).all():
+		sess.delete(tp)
+	sess.commit()
+
+	sess.query(Pref).delete()
+	sess.commit()
+
 @app.route('/courses/upload', methods=['POST','GET'])
 def upload_courses():
 	"""Upload Courses from banweb dump, "folding" mentored inquiries for each course into the course"""
@@ -169,9 +182,7 @@ def upload_courses():
 		courses = {} #row of tuples, first value contains a master row
 		             #second value contains list of Mentored Inqueries
 
-		sess.query(Course).delete()
-		#sess.query(TimePref).delete()
-		sess.query(Pref).delete()
+		clear_course_pref_data()
 
 		#1st pass group MENTORED INQUIRY with main course
 		for row in reader:
@@ -211,8 +222,7 @@ def upload_courses():
 			start_time = min([int(c['BEGIN TIME']) for c in all_courses])
 			stop_time  = max([int(c[  'END TIME']) for c in all_courses])
 
-			time = get_time(days_bfield,start_time,stop_time)
-			course.time_id = time.pref_id
+			course.time = get_time(days_bfield,start_time,stop_time)
 
 			sess.add(course)
 			sess.commit()
@@ -250,6 +260,7 @@ def upload_courses_flat():
 
 	if request.method == 'POST':
 		reset_memo_cache()
+		clear_course_pref_data()
 
 		reader = csv.DictReader(request.files['courses_file'])
 		for row in reader:
@@ -272,4 +283,3 @@ def upload_courses_flat():
 		return redirect(url_for('list_courses'))
 	else:
 		return render_response('upload_courses_flat.html')
-

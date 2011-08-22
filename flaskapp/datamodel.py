@@ -318,7 +318,7 @@ class Course(Base):
 	crn = Column(String(32))
 
 	time_id = Column(Integer, ForeignKey('times.pref_id'))
-	time = relationship(TimePref,cascade='delete, delete-orphan',single_parent=True)
+	time = relationship(TimePref)
 
 	prefs = relationship(Pref,
 			secondary=course2pref,
