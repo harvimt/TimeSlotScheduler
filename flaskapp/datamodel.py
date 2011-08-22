@@ -91,7 +91,7 @@ class Pref(Base):
 	pref_id = Column(Integer, Sequence('pref_id_seq'), primary_key = True)
 	pref_type_id = Column(Integer, ForeignKey('pref_types.pref_type_id'))
 
-	pref_type = relationship(PrefType)
+	pref_type = relationship(PrefType,cascade='all, delete-orphan')
 
 	name = Column(String(32))
 
@@ -115,7 +115,7 @@ class PrefWeight(Base):
 
 	pref_type_id = Column(Integer, ForeignKey('pref_types.pref_type_id'))
 
-	pref_type = relationship(PrefType,backref=backref('weights',order_by=weight_num))
+	pref_type = relationship(PrefType,backref=backref('weights',order_by=weight_num),cascade='all,delete-orphan')
 
 	__table_args__ = (UniqueConstraint(pref_type_id, weight_num),)
 
@@ -156,7 +156,7 @@ class Choice(Base):
 
 	pref = relationship(Pref)
 	weight = relationship(PrefWeight)
-	mentor = relationship(Mentor, backref=backref('choices'))
+	mentor = relationship(Mentor, backref=backref('choices'),cascade='all,delete-orphan')
 
 ##--##
 
@@ -316,11 +316,11 @@ class Course(Base):
 	crn = Column(String(32))
 
 	time_id = Column(Integer, ForeignKey('times.pref_id'))
-	time = relationship(TimePref)
+	time = relationship(TimePref,cascade='delete-orphan')
 
 	prefs = relationship(Pref,
 			secondary=course2pref,
-			order_by=Pref.pref_id)
+			order_by=Pref.pref_id,cascade='delete-orphan')
 
 	def prefs_as_dict(self):
 		r={}
