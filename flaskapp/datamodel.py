@@ -324,6 +324,11 @@ class Course(Base):
 			secondary=course2pref,
 			order_by=Pref.pref_id)
 
+	pre_assn_mentor_odin = Column(String) #TODO deprecate, for now acts as placeholder
+
+	pre_assn_mentor_id = Column(Integer, ForeignKey('mentors.mentor_id'))
+	pre_assn_mentor = relationship(Mentor)
+
 	def prefs_as_dict(self):
 		r={}
 		for pref in self.prefs:
@@ -333,7 +338,7 @@ class Course(Base):
 ##--##
 
 class Assignment():
-	__tablename__ = 'schedule'
+	__tablename__ = 'assignments'
 
 	assn_id = Column(Integer, Sequence('assn_id_seq'), primary_key = True)
 
@@ -344,3 +349,17 @@ class Assignment():
 	course = relationship(Course)
 
 	cost = Column(Float)
+
+##--##
+
+sched2assn = Table('sched2assn', Base.metadata,
+	Column('sched_id', Integer, ForeignKey('scheduler.sched_id')),
+	Column('assn_id', Integer, ForeignKey('assignments.assn_id'))
+)
+
+class Schedule():
+	__tablename__ = 'schedules'
+
+	sched_id = Column(Integer, Sequence('sched_id_seq'), primary_key = True)
+	assignments = relationship(Assignment, secondary=sched2assn)
+
