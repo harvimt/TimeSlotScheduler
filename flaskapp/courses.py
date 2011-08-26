@@ -276,6 +276,8 @@ def upload_courses_flat():
 			time.parse_name( row['Corresponding Time'] )
 			time = get_time_by_obj(time)
 			course.time = time
+
+			course.pre_assn_mentor_odin = row['Assigned Mentor']
 			sess.add(course)
 
 		sess.commit()
