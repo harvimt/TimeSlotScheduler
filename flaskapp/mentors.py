@@ -31,10 +31,10 @@ from datamodel import Mentor, Pref, PrefWeight, Choice, PrefType
 def list_mentors():
 	require_auth('admin')
 
-	pref_types = sess.query(PrefType).outerjoin(Pref).order_by(Pref.pref_type_id,Pref.pref_id).all()
-	#map(pref_types,lambda x: sort(x.,lambda y,z: 
+	pref_types = sess.query(PrefType).outerjoin(Pref).order_by(PrefType.pref_type_id).all()
+	#map(pref_types,lambda x: sort(x.,lambda y,z:
 
-	mentors = sess.query(Mentor).outerjoin(Choice).join(Pref).outerjoin(PrefWeight).order_by(Pref.pref_type_id,Pref.pref_id).all()
+	mentors = sess.query(Mentor).outerjoin(Choice).join(Pref).outerjoin(PrefWeight).order_by(Pref.pref_type_id).all()
 
 	return render_response('list_mentors.html',locals())
 	#return render_response('message.html',dict(title='List Mentors (no implemented)', message='<a href="/mentors/upload">Upload Mentors</a>'))

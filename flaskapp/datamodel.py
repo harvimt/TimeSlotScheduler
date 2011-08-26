@@ -93,7 +93,7 @@ class Pref(Base):
 	pref_id = Column(Integer, Sequence('pref_id_seq'), primary_key = True)
 	pref_type_id = Column(Integer, ForeignKey('pref_types.pref_type_id'))
 
-	pref_type = relationship(PrefType,backref=backref('prefs',cascade='all, delete, delete-orphan'))
+	pref_type = relationship(PrefType,backref=backref('prefs',cascade='all, delete, delete-orphan',order_by=pref_id))
 
 	name = Column(String(32))
 
@@ -158,7 +158,7 @@ class Choice(Base):
 
 	pref = relationship(Pref)
 	weight = relationship(PrefWeight)
-	mentor = relationship(Mentor, backref=backref('choices',cascade='all,delete, delete-orphan'))
+	mentor = relationship(Mentor, backref=backref('choices',cascade='all,delete, delete-orphan',order_by=choice_id))
 
 ##--##
 
