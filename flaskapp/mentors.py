@@ -41,7 +41,10 @@ def list_mentors():
 
 class MentorsUploadForm(Form):
 	name_index = Integer.using(label="Column Index of Mentor's Name")
+	odin_id_index = Integer.using(label="Odin name of the Mentor, used for pre-assigning mentors")
+
 	new_returning_index = Integer.using(label="Column Index of Whether Mentor is New or Returning")
+	
 	pref_start_index = Integer.using(label='Index where preferences start')
 	pref_stop_index = Integer.using(label='Index where preferences end')
 
@@ -69,7 +72,7 @@ def upload_mentors():
 
 		#save header row
 		header_row = i.next()
-		app.logger.debug('header_row len() = %i' % len(header_row))
+		#app.logger.debug('header_row len() = %i' % len(header_row))
 
 		for row in i:
 			mentor = Mentor()
@@ -81,10 +84,9 @@ def upload_mentors():
 				app.logger.debug('pref_index=%i' % pref_index)
 
 				header_col = header_row[pref_index]
-				app.logger.debug('header_col=%s' % header_col)
+				#app.logger.debug('header_col=%s' % header_col)
 
 				pref_name = header_col.rsplit('...-')[1]
-
 
 				choice = Choice()
 				try:
