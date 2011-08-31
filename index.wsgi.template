@@ -1,0 +1,9 @@
+import site, sys
+
+VIRTUAL_ENV_PATH = '/vol/www/unst-scheduler/htdocs/env/lib/python2.6/site-packages/'
+PROJECT_PATH = '/vol/www/unst-scheduler/htdocs/'
+
+site.addsitedir(VIRTUAL_ENV_PATH
+sys.path.append(PROJECT_PATH)
+
+from flaskapp import app as application
