@@ -34,9 +34,8 @@ Install using virtualenv on mod_wsgi for apache
 
     >>> git clone git://github.com/harvimt/TimeSlotScheduler.git
     >>> cd TimeSlotSchduler
-    >>> virtualenv env
-    >>> source env/bin/activate
-    >>> pip install flask genshi flask-genshi flask-csrf flatland sqlalchemy python-ldap
+    >>> virtualenv --no-site-packages env
+    >>> env/bin/pip install -r requirements.txt
     >>> env/bin/python runflaskapp.py install
 
 .. note:: Installing python-ldap 2.4 requires openldap 2.4, if your system has openldap 2.3
