@@ -926,8 +926,9 @@ class Scheduler:
 		writer.writerow(('new mentors teaching online/hybrid',row['new_mentors'],'%0.02f%%' % (row['new_mentors']/row['num_courses'])))
 		writer.writerow(('unwilling mentors teaching online/hybrid',row['unwilling'],'%0.02f%%' % (row['unwilling']/row['num_courses'])))
 
-if len(sys.argv) == 2:
-	sched = Scheduler(sys.argv[1])
-else:
-	print "Usage: ./runscheduler.py [config file]"
-	sys.exit(1)
+if __name__ == '__main__':
+	if len(sys.argv) == 2:
+		sched = Scheduler(sys.argv[1])
+	else:
+		print "Usage: ./runscheduler.py [config file]"
+		sys.exit(1)
