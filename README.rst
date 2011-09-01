@@ -36,11 +36,11 @@ Install using virtualenv::
     >>> cd TimeSlotSchduler
     >>> ./bootstrap.sh
 
-.. note:: Installing python-ldap 2.4 requires openldap 2.4, if your system has openldap 2.3
-          install python-ldap 2.3 and you'll be fine
+.. note:: Due to the nature of python-ldap, you'll need to ensure the proper system-level
+          dependencies are install on the host. They include the following:
 
-          to install python-ldap 2.3 do:
-          ./env/bin/pip install 'http://pypi.python.org/packages/source/p/python-ldap/python-ldap-2.3.13.tar.gz#md5=895223d32fa10bbc29aa349bfad59175'
+         * openssl development package(s)
+         * sasl development package(s)
 
 TODO
 ~~~~
