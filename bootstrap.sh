@@ -7,7 +7,7 @@ echo "Using VIRTUALENV_EXECUTABLE=${VIRTUALENV_EXECUTABLE}"
 
 if test -f ${VIRTUALENV_EXECUTABLE}; then
   if ! test -x ./env; then
-    ${VIRTUALENV_EXECUTABLE} --no-site-packages env
+    ${VIRTUALENV_EXECUTABLE} --distribute --no-site-packages env
   fi
   if test -f ./env/bin/python && test -f ./env/bin/pip; then
     env/bin/pip install -r requirements.txt
