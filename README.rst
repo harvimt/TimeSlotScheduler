@@ -30,19 +30,17 @@ Dependencies
 Installation
 ~~~~~~~~~~~~
 
-Install using virtualenv on mod_wsgi for apache
+Install using virtualenv::
 
-    >>> git clone git://github.com/harvimt/TimeSlotScheduler.git
+    >>> git clone https://username@trac.research.pdx.edu/git/unst-scheduler.git
     >>> cd TimeSlotSchduler
-    >>> virtualenv --no-site-packages env
-    >>> env/bin/pip install -r requirements.txt
-    >>> env/bin/python runflaskapp.py install
+    >>> ./bootstrap.sh
 
 .. note:: Installing python-ldap 2.4 requires openldap 2.4, if your system has openldap 2.3
           install python-ldap 2.3 and you'll be fine
 
           to install python-ldap 2.3 do:
-          pip install 'http://pypi.python.org/packages/source/p/python-ldap/python-ldap-2.3.13.tar.gz#md5=895223d32fa10bbc29aa349bfad59175'
+          ./env/bin/pip install 'http://pypi.python.org/packages/source/p/python-ldap/python-ldap-2.3.13.tar.gz#md5=895223d32fa10bbc29aa349bfad59175'
 
 TODO
 ~~~~
