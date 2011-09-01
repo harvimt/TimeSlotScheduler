@@ -13,6 +13,7 @@ if test -f ${VIRTUALENV_EXECUTABLE}; then
     env/bin/pip install -r requirements.txt
     if [ ! -f data.db ]; then
       env/bin/python runflaskapp.py install
+      chmod g+w data.db
       echo "In order to access and manage the web interface, a system user must be created." 
       echo "If this is the first time configuring, please use the createuser.py script to create an account."
     else
