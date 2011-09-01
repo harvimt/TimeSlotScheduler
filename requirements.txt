@@ -8,5 +8,6 @@ blinker==1.1
 distribute==0.6.10
 flask-csrf==0.9.2
 flatland==dev
+inflect==0.2.1
 python-ldap==2.4.3
 wsgiref==0.1.2
