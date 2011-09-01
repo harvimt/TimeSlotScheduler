@@ -8,7 +8,7 @@ import sys
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
-        print "Usage: createuser.py [username]"
+        print "Usage: createuser.py [ODIN username]"
         sys.exit(1)
 
     username = sys.argv[1]
