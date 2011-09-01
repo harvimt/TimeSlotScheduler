@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!./env/bin/python
 import sys
 from flaskapp import app
 
