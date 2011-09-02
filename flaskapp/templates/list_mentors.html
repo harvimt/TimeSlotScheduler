@@ -19,25 +19,43 @@ A Mentor Listing (possibly filtered)
 
 	<body>
 		<a href="${url_for('upload_mentors')}">Upload Mentors</a>
+		<table py:if="mentors and unattached_prefs" class="error" id="unassigned_prefs">
+			<caption>
+				<h2>Unassigned Preferences</h2>
+				<p>These Preferences were not found in the survey file, for rank types (such as Time), this likely just means that no one put the preference in their TOP 5 or whatever, but for weight types at the very least means that the preference was not included in the survey, and probably means a misspelling</p>
+				<p>These errors are not critical, but the output may not be what is desired if these problems are not fixed</p>
+			</caption>
+			<thead>
+				<tr><th>Unassigned Preference Name</th></tr>
+			</thead>
+			<tbody>
+				<tr py:for="pref in unattached_prefs">
+					<td>${pref.name}</td>
+				</tr>
+			</tbody>
+		</table>
 		<table id="mentor_listing" >
 			<thead>
-				<h2>Mentor Listing</h2>
+				<caption><h2>Mentor Listing</h2></caption>
 				<tr>
 					<th rowspan="2">Mentor Name</th>
-					<th py:for="pref_type in pref_types" colspan="${len(pref_type.prefs)}">${pref_type.name}</th>
+					<th py:for="pref_type in pref_types">${pref_type.name}</th>
 				</tr>
+				<!--!
 				<tr>
 					<py:for each="pref_type in pref_types">
 						<th py:for="pref in pref_type.prefs">${pref.pref_id}</th>
 					</py:for>
 				</tr>
+				-->
 			</thead>
 			<tbody>
-				<tr py:for="mentor in mentors">
+				<tr py:for="mentor in mentors" py:with="choices = mentor.choices_group_by_type(pref_types)">
 					<td>${mentor.full_name}</td>
-					<td py:for="choice in mentor.choices">
-						<!--!${choice.weight.weight_num if choice.weight else 'Default'}-->
-						${choice.pref.name}
+					<td py:for="group in choices">
+						<ol>
+							<li py:for="choice in group">${choice.pref.name}</li>
+						</ol>
 					</td>
 				</tr>
 			</tbody>

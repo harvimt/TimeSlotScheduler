@@ -32,10 +32,22 @@ A Course Listing (possibly filtered)
 			</thead>
 			<tbody>
 				<tr py:for="course in courses" py:with="prefs=course.prefs_as_dict()">
-					<td>${course.crn}</td>
-					<td>${course.time}</td>
-					<td>${prefs.Theme}</td>
-					<td>${prefs.Faculty}</td>
+					<py:choose>
+						<td py:when="course.crn">${course.crn}</td>
+						<td py:otherwise="" class="error">UNDEFINED</td>
+					</py:choose>
+					<py:choose>
+						<td py:when="'Time' in prefs">${prefs.Time}</td>
+						<td py:otherwise="" class="error">UNDEFINED</td>
+					</py:choose>
+					<py:choose>
+						<td py:when="'Theme' in prefs">${prefs.Theme}</td>
+						<td py:otherwise="" class="error">UNDEFINED</td>
+					</py:choose>
+					<py:choose>
+						<td py:when="'Faculty' in prefs">${prefs.Faculty}</td>
+						<td py:otherwise="" class="error">UNDEFINED</td>
+					</py:choose>
 				</tr>
 			</tbody>
 		</table>
