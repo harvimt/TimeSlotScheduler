@@ -33,7 +33,7 @@ def list_courses():
 
 def get_pref(pref_type, pref_name):
 
-	#memoize, so we don't have to commit
+	#memoize, so we don't have to commit at each interval and also minimizes selects
 	if (pref_type,pref_name) in get_pref.prefs:
 		pref = get_pref.prefs[(pref_type, pref_name)]
 		#app.logger.debug('pref %r found in cache' % pref)
@@ -127,6 +127,12 @@ days=dict(
 	F=0b00001
 )
 
+'''
+def excol2in(excol):
+  """Exceol Column name (AB) to index"""
+  return sum ([ 26**i * (ord(c) - ord('A') + 1) for i, c in enumerate(reversed(excol.upper()))]) - 1
+'''
+
 def course2bfield(course):
 	"""turn a course dict as per from the CSV into a bitfield
 	if a day is "true" then the key of that days long name will be set to it's short name
@@ -137,7 +143,8 @@ def course2bfield(course):
 
 	bfield = 0
 	for l,s in dayl2s.items():
-		if course[l] == s:
+		if  (l in course and course[l] == s) or \
+			(s in course and course[s] == s):
 			bfield |= days[s]
 
 	return bfield
@@ -193,7 +200,11 @@ def upload_courses():
 				#decrease ascii value of final character by one
 				#to turn for example 101B into 101A
 				rel_course = course_no[0:-1] + chr(ord(course_no[-1]) - 1)
-				courses[rel_course][1].append(row)
+				if rel_course not in courses:
+					#Courses may be out of order, so 101B might come before 101A
+					courses[rel_course] = (None, [row])
+				else:
+					courses[rel_course][1].append(row)
 			else:
 				courses[row['COURSE NO']] = (row, [])
 
@@ -223,9 +234,9 @@ def upload_courses():
 			stop_time  = max([int(c[  'END TIME']) for c in all_courses])
 
 			course.time = get_time(days_bfield,start_time,stop_time)
+			course.prefs.append(course.time)
 
 			sess.add(course)
-			sess.commit()
 
 		sess.commit()
 
@@ -262,23 +273,58 @@ def upload_courses_flat():
 		reset_memo_cache()
 		clear_course_pref_data()
 
+		errors = []
+
 		reader = csv.DictReader(request.files['courses_file'])
 		for row in reader:
 			course = Course()
 			course.crn = row['CRN']
+			if not course.crn:
+				errors.append('Course missing a CRN, row=%r' % row)
 
+			## Theme ##
 			theme_name = row['Theme']
-			faculty_name = row['Faculty Last Name'] + ', ' + row['Faculty First Name']
-			course.prefs.append( get_pref('Theme', theme_name) )
-			course.prefs.append( get_pref('Faculty', faculty_name) )
+			#clean theme name, for example turn "GLOBAL PERSPECTIVES: EUROPE" into simply "GLOBAL PERSPECTIVES"
+			if ': ' in theme_name:
+				theme_name = theme_name.rsplit(': ')[0]
 
+			theme_name = theme_name.strip()
+
+			if not theme_name:
+				errors.append('Theme name missing for course with CRN %s' % course.crn)
+			else:
+				course.prefs.append( get_pref('Theme', theme_name) )
+
+			## Faculty ##
+			faculty_name = ''
+			last_name = row['Faculty Last Name'].strip()
+			first_name = row['Faculty First Name'].strip()
+			if first_name and last_name:
+				faculty_name = last_name + ', ' + first_name
+			elif last_name or first_name:
+				faculty_name = last_name or first_name
+
+			if faculty_name:
+				course.prefs.append( get_pref('Faculty', faculty_name) )
+			else:
+				errors.append('Both first and last faculty name for course with CRN %s is empty' % course.crn)
+
+			## Time ##
 			time = TimePref()
-			time.parse_name( row['Corresponding Time'] )
-			time = get_time_by_obj(time)
-			course.time = time
+			time_name = row['Corresponding Time']
+			if time.parse_name(time_name):
+				time = get_time_by_obj(time)
+				course.time = time
+				course.prefs.append(course.time)
+			else:
+				errors.append('Time with name %s not parseable, must be in format, MTWRF 000-2459 with optional trailing' % time_name)
 
-			course.pre_assn_mentor_odin = row['Assigned Mentor']
+			if 'Assigned Mentor' in row and row['Assigned Mentor'].strip():
+				course.pre_assn_mentor_odin = row['Assigned Mentor'].strip()
 			sess.add(course)
+
+		#all missing errors
+		app.logger.debug('Course Upload Errors: %r' % errors)
 
 		sess.commit()
 

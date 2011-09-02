@@ -140,10 +140,38 @@ class Mentor(Base):
 	online_hybrid = Column(Boolean)
 	odin_id = Column(String(32))
 	full_name = Column(String(128))
+
 	min_slots = Column(Integer)
 	max_slots = Column(Integer)
 
 	email = Column(String(128))
+
+	def __repr__(self):
+		return '<Mentor mentor_id=%r full_name=%r' % (self.mentor_id, self.full_name)
+
+	def choices_group_by_type(self,pref_types = None):
+		"""Group By pref_type_id, and sort by weight_num"""
+
+		sorted_choices = sorted(self.choices, lambda x,y: cmp(x.pref.pref_type_id, y.pref.pref_type_id))
+		prev_type_id = None
+		groups = {}
+		cur_group = None
+
+		if pref_types is not None:
+			for pref_type in pref_types:
+				groups[pref_type.pref_type_id] = []
+
+		for choice in sorted_choices:
+			if prev_type_id != choice.pref.pref_type_id:
+				cur_group = []
+				prev_type_id = choice.pref.pref_type_id
+				groups[prev_type_id] = cur_group
+			cur_group.append(choice)
+
+		for group in groups.values():
+			group.sort(lambda x,y: cmp(x.weight.weight_num if x.weight is not None else None, y.weight.weight_num if y.weight is not None else None))
+
+		return groups.values()
 
 ##--##
 
@@ -158,7 +186,7 @@ class Choice(Base):
 
 	pref = relationship(Pref)
 	weight = relationship(PrefWeight)
-	mentor = relationship(Mentor, backref=backref('choices',cascade='all,delete, delete-orphan',order_by=choice_id))
+	mentor = relationship(Mentor, backref=backref('choices', cascade='all, delete, delete-orphan', order_by=pref_id))
 
 ##--##
 
@@ -238,25 +266,39 @@ class TimePref(Pref):
 	
 	def parse_name(self,name):
 		""" turn """
-		self.name = name
+		self.name = name.upper().strip()
+		
 		if name == 'WEB':
 			self.time_type = 'online'
 		else:
-			match = re.match(r'(([MTWRF]|Sa|Su)+) (\d+) *- *(\d+)(/HYBRID)?',name)
+			match = re.match(r'(([MTWRF]|SA|SU)+)\s*(\d+)\s*-\s*(\d+)\s*(/\s*HYBRID)?',name)
+			if not match:
+				app.logger.debug('Time parse failure: RE did not match')
+				return False
 
 			days = match.group(1)
+			days_good = False
 			for day in self.bfieldmap.keys():
-				if day in days:
+				if day.upper() in days:
+					days_good = True
 					self.update(**{day:True})
-			
-			start_time = match.group(3)
-			start_time_hours, start_time_mins = int(start_time[0:-2]),int(start_time[-2:])
 
-			stop_time = match.group(4)
-			stop_time_hours, stop_time_mins = int(stop_time[0:-2]),int(stop_time[-2:])
+			if not days_good:
+				app.logger.debug('Time Parse Failure: days bad: days = %r', days)
+				return False #at least one day must be present
 
-			self.start_time = datetime.time(start_time_hours, start_time_mins)
-			self.stop_time = datetime.time(stop_time_hours, stop_time_mins)
+			try:
+				start_time = match.group(3)
+				start_time_hours, start_time_mins = int(start_time[0:-2]),int(start_time[-2:])
+
+				stop_time = match.group(4)
+				stop_time_hours, stop_time_mins = int(stop_time[0:-2]),int(stop_time[-2:])
+
+				self.start_time = datetime.time(start_time_hours, start_time_mins)
+				self.stop_time = datetime.time(stop_time_hours, stop_time_mins)
+			except Exception as e:
+				app.logger.debug('Time Parse Failure: Exception: %r' % e)
+				return False
 
 			if match.group(5) is None:
 				self.time_type = 'normal'
@@ -266,6 +308,8 @@ class TimePref(Pref):
 		self.update_name()
 		if self.name != name:
 			raise Exception('Name (%s) does not match name (%s) after parse' % (self.name, name))
+
+		return True
 
 	bfieldmap = dict(
 		M= 0b0000001,
@@ -337,7 +381,7 @@ class Course(Base):
 
 ##--##
 
-class Assignment():
+class Assignment(Base):
 	__tablename__ = 'assignments'
 
 	assn_id = Column(Integer, Sequence('assn_id_seq'), primary_key = True)
@@ -353,13 +397,12 @@ class Assignment():
 ##--##
 
 sched2assn = Table('sched2assn', Base.metadata,
-	Column('sched_id', Integer, ForeignKey('scheduler.sched_id')),
+	Column('sched_id', Integer, ForeignKey('schedules.sched_id')),
 	Column('assn_id', Integer, ForeignKey('assignments.assn_id'))
 )
 
-class Schedule():
+class Schedule(Base):
 	__tablename__ = 'schedules'
 
 	sched_id = Column(Integer, Sequence('sched_id_seq'), primary_key = True)
 	assignments = relationship(Assignment, secondary=sched2assn)
-

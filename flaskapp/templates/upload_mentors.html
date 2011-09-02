@@ -50,6 +50,13 @@ Upload Mentors CSV File
 							${form_errors(el.errors)}
 						</dd>
 					</label>
+					<label py:with="el=form.two_slots_index" form:bind="el">
+						<dt>${el.label}: </dt>
+						<dd>
+							<input form:bind="el" />
+							${form_errors(el.errors)}
+						</dd>
+					</label>
 				</dl>
 
 					<fieldset>

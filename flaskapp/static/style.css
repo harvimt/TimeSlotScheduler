@@ -27,6 +27,9 @@ thead th {
 tbody th {
 	text-align: right;
 }
+caption p{
+	text-align: left;
+}
 
 #messages { clear: both; }
 #messages div{
@@ -88,11 +91,11 @@ tbody th {
 }
 
 /*User*/
-#user_listing {
-	width: 100%;
-}
-
-#course_listing {
+table {
 	width: 100%;
 	max-width: 800px;
+}
+
+#unassigned_prefs td {
+	white-space: pre;
 }

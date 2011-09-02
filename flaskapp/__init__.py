@@ -51,30 +51,38 @@ def install():
 
 	#add pref types
 	sess.add_all((
-		PrefType('Time',    'rank',   .3),
-		PrefType('Faculty', 'weight', .3),
-		PrefType('Theme',   'weight', .3)
+		PrefType('Time',    'rank',   5.0),
+		PrefType('Faculty', 'weight', 2.0),
+		PrefType('Theme',   'weight', 1.0)
 	))
 	sess.commit()
 
 
 	#and pref weights
 	sess.add_all((
-		PrefWeight(1,0,.1),
-		PrefWeight(1,1,.2),
-		PrefWeight(1,2,.3),
-		PrefWeight(1,3,.4),
-		PrefWeight(1,4,.5),
-		PrefWeight(2,0,.1),
-		PrefWeight(2,1,.2),
-		PrefWeight(2,2,.3),
-		PrefWeight(2,3,.4),
-		PrefWeight(2,4,.5),
-		PrefWeight(3,0,.1),
-		PrefWeight(3,1,.2),
-		PrefWeight(3,2,.3),
-		PrefWeight(3,3,.4),
-		PrefWeight(3,4,.5)
+		PrefWeight(1,0,0.00),
+		PrefWeight(1,1,0.25),
+		PrefWeight(1,2,0.50),
+		PrefWeight(1,3,0.75),
+		PrefWeight(1,4,1.00),
+		PrefWeight(1,5,1.25),
+		PrefWeight(1,6,1.50),
+
+		PrefWeight(2,0,0.00),
+		PrefWeight(2,1,0.33),
+		PrefWeight(2,2,0.66),
+		PrefWeight(2,3,1.00),
+		PrefWeight(2,4,1.33),
+		PrefWeight(2,5,1.67),
+		PrefWeight(2,6,2.00),
+
+		PrefWeight(3,0,0.00),
+		PrefWeight(3,1,0.17),
+		PrefWeight(3,2,0.33),
+		PrefWeight(3,3,0.50),
+		PrefWeight(3,4,0.67),
+		PrefWeight(3,5,0.83),
+		PrefWeight(3,6,1.00)
 	))
 
 	sess.commit()
