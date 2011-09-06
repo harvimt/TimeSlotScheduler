@@ -103,6 +103,9 @@ class Pref(Base):
 	def __str__(self):
 		return self.name
 
+	def __repr__(self):
+		return '<Pref name=%r pref_type=%r>' % (self.name, self.pref_type.name)
+
 ##--##
 
 class PrefWeight(Base):
@@ -144,7 +147,12 @@ class Mentor(Base):
 	min_slots = Column(Integer)
 	max_slots = Column(Integer)
 
+
 	email = Column(String(128))
+
+	def __init__(self):
+		self.adj_min_slots = 0
+		self.adj_max_slots = 0
 
 	def __repr__(self):
 		return '<Mentor mentor_id=%r full_name=%r' % (self.mentor_id, self.full_name)
@@ -378,6 +386,9 @@ class Course(Base):
 		for pref in self.prefs:
 			r[pref.pref_type.name] = pref.name
 		return r
+
+	def __repr__(self):
+		return '<Course course_id=%r crn=%r time=%r>' % (self.course_id, self.crn, self.time)
 
 ##--##
 
