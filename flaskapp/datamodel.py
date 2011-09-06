@@ -405,9 +405,13 @@ class Assignment(Base):
 
 	cost = Column(Float)
 
+	def __init__(self,course=None,mentor=None,cost=None):
+		self.course = course
+		self.mentor = mentor
+		self.cost = None
+
 	def __repr__(self):
 		return '<Assignment assn_id=%r course=%r mentor=%r>' % (self.assn_id, self.course,self.mentor)
-
 
 ##--##
 
