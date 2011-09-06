@@ -405,6 +405,10 @@ class Assignment(Base):
 
 	cost = Column(Float)
 
+	def __repr__(self):
+		return '<Assignment assn_id=%r course=%r mentor=%r>' % (self.assn_id, self.course,self.mentor)
+
+
 ##--##
 
 sched2assn = Table('sched2assn', Base.metadata,
