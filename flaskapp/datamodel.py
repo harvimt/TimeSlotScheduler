@@ -18,6 +18,7 @@ from sqlalchemy import Column, Integer, String, Boolean, Time, Enum, Sequence, F
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.orm import relationship, backref
 from database import Base
+from flaskapp import app #for app.logging
 
 ##--##
 
