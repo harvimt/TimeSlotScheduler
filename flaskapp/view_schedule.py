@@ -27,6 +27,10 @@ from datamodel import Schedule
 @app.route('/view_schedule')
 def view_schedule():
 	schedule = sess.query(Schedule).one()
+	assignments = schedule.assignments
 	#app.logger.debug(schedule.assignments)
-	return render_response('view_schedule.html', dict(assignments=schedule.assignments))
+	#Calculate statistics
+	total_cost = sum(map(lambda x: x.cost, assignments))
+	avg_cost = total_cost/len(assignments)
+	return render_response('view_schedule.html', locals())
 

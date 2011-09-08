@@ -18,7 +18,7 @@ View A Schedule
 	</head>
 
 	<body>
-		<table id="course_listing" >
+		<table id="schedule_listing" >
 			<thead>
 				<h2>Schedule</h2>
 				<tr>
@@ -38,6 +38,18 @@ View A Schedule
 					<td>${assn.mentor.full_name}</td>
 				</tr>
 			</tbody>
+		</table>
+
+		<h2>Statistics</h2>
+		<table>
+			<tr>
+				<th>Total Cost</th>
+				<th>${total_cost}</th>
+			</tr>
+			<tr>
+				<th>Average Cost</th>
+				<td>${avg_cost}</th>
+			</tr>
 		</table>
 	</body>
 </html>
