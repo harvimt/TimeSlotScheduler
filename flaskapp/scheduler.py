@@ -76,8 +76,8 @@ class Scheduler(object):
 			self.assn_req_slots_initial()
 			self.assn_req_slots_swaps()
 
-			#self.assn_add_slots_initial()
-			#self.assn_add_slots_swaps()
+			self.assn_add_slots_initial()
+			self.assn_add_slots_swaps()
 
 			self.finalize_schedule()
 			self.output_schedule()
@@ -197,13 +197,11 @@ class Scheduler(object):
 		self.req_best_cost = 0
 		for course in tmp_unassned_courses:
 			found_assn = False
-			for i, slot in enumerate(self.req_mentor_slots):
+			for slot in self.req_mentor_slots:
 
 				assn = self.get_assn(course,slot.mentor)
 
-				if not assn.cost:
-					print_msg("ERROR (non-fatal)!, assn without cost=%r" % assn)
-					continue
+				assert(assn.cost is not None)
 
 				if self.assn_valid(self.req_assns, assn):
 					self.req_assns.append(assn)
@@ -319,52 +317,52 @@ class Scheduler(object):
 		print
 
 		#remove placeholder assignments
+		self.unassned_courses = set()
 		for assn in self.req_assns:
 			if assn.mentor is None:
 				#print_msg('assn=%r' % assn)
 				self.req_assns.remove(assn)
-			
+				self.unassned_courses.add(assn.course)
+
+		#calculate unassned_courses
+
 		print_msg('Started Assigning mentors to required slots -- swap assignments')
 
 	def assn_add_slots_initial(self):
 		#note mentors >= courses
 		print_msg('Started Assigning mentors to additional slots -- initial')
 
-		for slot in add_mentor_slots:
+		for slot in self.add_mentor_slots:
 			found_course = False
-			for course in unassned_courses:
+			for course in self.unassned_courses:
 				assn = self.get_assn(course,slot.mentor)
 
-				#print_msg("assn=%r" % assn)
-				if not assn.cost:
-					print_msg('ERROR! assignment w/o cost=%r' % assn)
-					continue
+				assert(assn.cost is not None)
 
-				if self.assn_valid(add_assns, assn):
-					#print_msg('valid')
-
-					add_assns.append(assn)
-					unassned_courses.discard(course)
-					add_best_cost += assn.cost
+				if self.assn_valid(self.add_assns, assn):
+					self.add_assns.append(assn)
+					self.unassned_courses.discard(course)
+					self.add_best_cost += assn.cost
 					found_course = True
 					break
 
 			if not found_course:
 				#print_msg('no course found for assn')
-				assn = self.get_assn(course,None)
+				assn = self.get_assn(None,slot.mentor)
 
+		assert(not self.unassned_courses)
 		print_msg('Finished Assigning mentors to additional slots -- initial')
 
 	def assn_add_slots_swaps(self):
 		#note mentors >= courses
 		print_msg('Started Assigning mentors to additional slots -- swaps')
 
-		if len(add_assns) > 1:
+		if len(self.add_assns) > 1:
 			pass #TODO
 
 		#remove placeholder assignments
-		for assn in self.req_assns:
-			if assn.mentor is None:
+		for assn in self.add_assns:
+			if assn.course is None:
 				#print_msg('assn=%r' % assn)
 				self.add_assns.remove(assn)
 
