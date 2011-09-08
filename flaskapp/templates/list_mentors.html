@@ -53,9 +53,9 @@ A Mentor Listing (possibly filtered)
 				<tr py:for="mentor in mentors" py:with="choices = mentor.choices_group_by_type(pref_types)">
 					<td>${mentor.full_name}</td>
 					<td py:for="group in choices">
-						<ol>
-							<li py:for="choice in group">${choice.pref.name}</li>
-						</ol>
+						<ul>
+							<li py:for="choice in group">${choice.pref.name}=${choice.weight.weight_num if choice.weight else 'None'}</li>
+						</ul>
 					</td>
 				</tr>
 			</tbody>

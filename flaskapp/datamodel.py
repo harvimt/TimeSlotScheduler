@@ -160,20 +160,32 @@ class Mentor(Base):
 
 	def choices_group_by_type(self,pref_types = None):
 		"""Group By pref_type_id, and sort by weight_num"""
+		def cmp_pref_types(x,y):
+			if x.pref and not y.pref:
+				return 1
+			elif not x.pref and y.pref:
+				return -1
+			elif not x.pref and not y.pref:
+				return 0
+			else:
+				return cmp(x.pref.pref_type_id, y.pref.pref_type_id)
 
-		sorted_choices = sorted(self.choices, lambda x,y: cmp(x.pref.pref_type_id, y.pref.pref_type_id))
+		sorted_choices = sorted(filter(lambda x: x.weight is not None,self.choices), cmp_pref_types)
 		prev_type_id = None
 		groups = {}
 		cur_group = None
 
 		if pref_types is not None:
 			for pref_type in pref_types:
-				groups[pref_type.pref_type_id] = []
+				pref_type_id = pref_type.pref_type_id if pref_type else -1
+				groups[pref_type_id] = []
 
 		for choice in sorted_choices:
-			if prev_type_id != choice.pref.pref_type_id:
+			pref_type_id = choice.pref.pref_type_id if choice.pref else -1
+
+			if prev_type_id != pref_type_id:
 				cur_group = []
-				prev_type_id = choice.pref.pref_type_id
+				prev_type_id = pref_type_id
 				groups[prev_type_id] = cur_group
 			cur_group.append(choice)
 
@@ -336,17 +348,19 @@ class TimePref(Pref):
 			d[k] = (bfield & v) != 0
 		self.update(**d)
 
-	def to_bfield():
+	def to_bfield(self):
 		bfield = 0b0
-		for k,v in self.bfieldmap:
-			if self.__dict__[k]: bfield |= v
+		for k,v in self.bfieldmap.items():
+			if self.__dict__[k]:
+				bfield |= v
+		return bfield
 	
 	def overlaps(self,other):
-		if (self.to_bfield() & other.to_bfield) != 0:
+		if (self.to_bfield() & other.to_bfield()) != 0:
 			if self.start_time == other.start_time and self.stop_time == other.stop_time:
 				return True
 			elif other.start_time > self.start_time:
-				if self.stop_time > other.course.start_time:
+				if self.stop_time > other.start_time:
 					return True
 			else: #self.start_time < other.start_time
 				if other.stop_time > self.stop_time:
@@ -409,10 +423,10 @@ class Assignment(Base):
 	def __init__(self,course=None,mentor=None,cost=None):
 		self.course = course
 		self.mentor = mentor
-		self.cost = None
+		self.cost = cost
 
 	def __repr__(self):
-		return '<Assignment assn_id=%r course=%r mentor=%r>' % (self.assn_id, self.course,self.mentor)
+		return '<Assignment assn_id=%r course=%r mentor=%r cost=%r>' % (self.assn_id, self.course,self.mentor, self.cost)
 
 ##--##
 
@@ -425,4 +439,4 @@ class Schedule(Base):
 	__tablename__ = 'schedules'
 
 	sched_id = Column(Integer, Sequence('sched_id_seq'), primary_key = True)
-	assignments = relationship(Assignment, secondary=sched2assn)
+	assignments = relationship(Assignment, secondary=sched2assn,cascade="all, delete")

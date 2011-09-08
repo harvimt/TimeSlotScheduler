@@ -111,3 +111,4 @@ import survey
 import courses
 import weights
 import mentors
+import view_schedule

@@ -18,7 +18,6 @@ from flask import session, request, url_for, redirect, abort, flash
 
 from flaskext.genshi import render_response
 from flaskapp.globals import *
-from flaskapp import app
 
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
@@ -127,12 +126,6 @@ days=dict(
 	R=0b00010,
 	F=0b00001
 )
-
-'''
-def excol2in(excol):
-  """Exceol Column name (AB) to index"""
-  return sum ([ 26**i * (ord(c) - ord('A') + 1) for i, c in enumerate(reversed(excol.upper()))]) - 1
-'''
 
 def course2bfield(course):
 	"""turn a course dict as per from the CSV into a bitfield

@@ -99,3 +99,7 @@ table {
 #unassigned_prefs td {
 	white-space: pre;
 }
+
+#sched_stats_table {
+	width: auto;
+}
