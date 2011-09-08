@@ -36,7 +36,7 @@ View A Schedule
 					<td>${prefs.Time}</td>
 					<td>${prefs.Theme}</td>
 					<td>${prefs.Faculty}</td>
-					<td>${assn.mentor.full_name}</td>
+					<td>${assn.mentor.full_name if assn.mentor else 'NO MENTOR'}</td>
 				</tr>
 			</tbody>
 		</table>

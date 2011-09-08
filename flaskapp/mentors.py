@@ -108,7 +108,11 @@ def upload_mentors():
 				#app.logger.debug('pref_index=%i' % pref_index)
 				#app.logger.debug('header_col=%r' % header_col)
 
-				pref_name = header_col.rsplit('...-')[1]
+				try:
+					pref_name = header_col.rsplit('...-')[1]
+				except Exception:
+					errors.append('Header row in invalid format, it should be <question>...-<pref name>')
+					continue
 
 				choice = Choice()
 				try:
