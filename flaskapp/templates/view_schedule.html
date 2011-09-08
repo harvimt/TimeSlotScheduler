@@ -1,0 +1,53 @@
+<!--! vim: set syn=genshi: !-->
+<!--!
+View A Schedule
+~~~~~~~~~~~~~~~
+
+::Parameters::
+   -`courses`: list of `datamodel.Course` objects
+-->
+<html
+	xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:py="http://genshi.edgewall.org/"
+	xmlns:xi="http://www.w3.org/2001/XInclude"
+	>
+	<xi:include href="layout.html"/>
+
+	<head>
+		<title>Schedule</title>
+	</head>
+
+	<body>
+		<table id="course_listing" >
+			<thead>
+				<h2>Schedule</h2>
+				<tr>
+					<th>CRN</th>
+					<th>Time</th>
+					<th>Theme</th>
+					<th>Faculty</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr py:for="assn in assignments">
+					<py:choose>
+						<td py:when="course.crn">${course.crn}</td>
+						<td py:otherwise="" class="error">UNDEFINED</td>
+					</py:choose>
+					<py:choose>
+						<td py:when="'Time' in prefs">${prefs.Time}</td>
+						<td py:otherwise="" class="error">UNDEFINED</td>
+					</py:choose>
+					<py:choose>
+						<td py:when="'Theme' in prefs">${prefs.Theme}</td>
+						<td py:otherwise="" class="error">UNDEFINED</td>
+					</py:choose>
+					<py:choose>
+						<td py:when="'Faculty' in prefs">${prefs.Faculty}</td>
+						<td py:otherwise="" class="error">UNDEFINED</td>
+					</py:choose>
+				</tr>
+			</tbody>
+		</table>
+	</body>
+</html>

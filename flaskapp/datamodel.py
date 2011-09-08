@@ -160,20 +160,32 @@ class Mentor(Base):
 
 	def choices_group_by_type(self,pref_types = None):
 		"""Group By pref_type_id, and sort by weight_num"""
+		def cmp_pref_types(x,y):
+			if x.pref and not y.pref:
+				return 1
+			elif not x.pref and y.pref:
+				return -1
+			elif not x.pref and not y.pref:
+				return 0
+			else:
+				return cmp(x.pref.pref_type_id, y.pref.pref_type_id)
 
-		sorted_choices = sorted(self.choices, lambda x,y: cmp(x.pref.pref_type_id, y.pref.pref_type_id))
+		sorted_choices = sorted(filter(lambda x: x.weight is not None,self.choices), cmp_pref_types)
 		prev_type_id = None
 		groups = {}
 		cur_group = None
 
 		if pref_types is not None:
 			for pref_type in pref_types:
-				groups[pref_type.pref_type_id] = []
+				pref_type_id = pref_type.pref_type_id if pref_type else -1
+				groups[pref_type_id] = []
 
 		for choice in sorted_choices:
-			if prev_type_id != choice.pref.pref_type_id:
+			pref_type_id = choice.pref.pref_type_id if choice.pref else -1
+
+			if prev_type_id != pref_type_id:
 				cur_group = []
-				prev_type_id = choice.pref.pref_type_id
+				prev_type_id = pref_type_id
 				groups[prev_type_id] = cur_group
 			cur_group.append(choice)
 

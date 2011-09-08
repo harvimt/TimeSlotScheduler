@@ -27,13 +27,17 @@ from sqlalchemy.orm.exc import NoResultFound
 from database import db_session as sess
 from datamodel import Mentor, Pref, PrefWeight, Choice, PrefType
 
+def excol2in(excol):
+  """Exceol Column name (AB) to index"""
+  return sum ([ 26**i * (ord(c) - ord('A') + 1) for i, c in enumerate(reversed(excol.upper()))]) - 1
+
 @app.route('/mentors')
 def list_mentors():
 	require_auth('admin')
 
 	pref_types = sess.query(PrefType) #.outerjoin(Pref).order_by(PrefType.pref_type_id).all()
 
-	mentors = sess.query(Mentor).outerjoin(Choice).join(Pref).outerjoin(PrefWeight).filter(Choice.weight != None).order_by(Pref.pref_type_id).all()
+	mentors = sess.query(Mentor).outerjoin(Choice).join(Pref).outerjoin(PrefWeight).filter(Choice.weight_id != None).order_by(Pref.pref_type_id).all()
 
 	unattached_prefs = sess.query(Pref).filter(~Pref.pref_id.in_(sess.query(Choice.pref_id))).all()
 
@@ -117,7 +121,14 @@ def upload_mentors():
 				if row[pref_index] != '' and row[pref_index] != '0':
 					choice.weight = None
 
-					weight_num = 7 - int(row[pref_index])
+					if choice.pref.pref_type.weight_type == 'weight':
+						#invert so larger number is likes more, and smaller number is likes less
+						weight_num = 7 - int(row[pref_index])
+					else:
+						#for rank types 1 is best (#1 choice), and higher is worse
+						weight_num = int(row[pref_index])
+						#else: do leave 
+
 					if not weight_num >= 0:
 						errors.append('Weight must be in range 0-7, pref weight is %s, preference=%s, mentor=%s, treating as "Default Preference"' %\
 								( row[pref_index], choice.pref.name, mentor.full_name))
