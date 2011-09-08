@@ -30,6 +30,22 @@ def view_schedule():
 	schedule = sess.query(Schedule).one()
 	assignments = schedule.assignments
 
+	schedule = sess.query(Schedule).one()
+
+	errors = []
+	for assn in schedule.assignments:
+		if assn.course is None:
+			errors.append('%r missing course' % assn)
+
+		if assn.mentor is None:
+			errors.append('%r missing mentor' % assn)
+
+		if assn.assn_id is None:
+			errors.append('%r missing id' % assn)
+
+	if errors:
+		raise Exception('%r' % errors)
+
 	#Calculate statistics
 	total_cost = sum(map(lambda x: x.cost, assignments))
 	avg_cost = total_cost/len(assignments)
