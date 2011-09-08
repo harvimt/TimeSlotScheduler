@@ -99,6 +99,7 @@ def upload_mentors():
 			mentor.max_slots = 1
 
 			if two_slots_index is not None and row[two_slots_index] == 'Yes':
+				#app.logger.debug('TWO SLOTS!')
 				mentor.max_slots = 2
 
 			for pref_index in range(pref_start_index, pref_stop_index+1):
