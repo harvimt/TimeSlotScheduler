@@ -18,6 +18,7 @@ from sqlalchemy import Column, Integer, String, Boolean, Time, Enum, Sequence, F
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.orm import relationship, backref
 from database import Base
+from flaskapp import app #for app.logging
 
 ##--##
 
@@ -103,6 +104,9 @@ class Pref(Base):
 	def __str__(self):
 		return self.name
 
+	def __repr__(self):
+		return '<Pref name=%r pref_type=%r>' % (self.name, self.pref_type.name)
+
 ##--##
 
 class PrefWeight(Base):
@@ -144,7 +148,12 @@ class Mentor(Base):
 	min_slots = Column(Integer)
 	max_slots = Column(Integer)
 
+
 	email = Column(String(128))
+
+	def __init__(self):
+		self.adj_min_slots = 0
+		self.adj_max_slots = 0
 
 	def __repr__(self):
 		return '<Mentor mentor_id=%r full_name=%r' % (self.mentor_id, self.full_name)
@@ -379,6 +388,9 @@ class Course(Base):
 			r[pref.pref_type.name] = pref.name
 		return r
 
+	def __repr__(self):
+		return '<Course course_id=%r crn=%r time=%r>' % (self.course_id, self.crn, self.time)
+
 ##--##
 
 class Assignment(Base):
@@ -393,6 +405,14 @@ class Assignment(Base):
 	course = relationship(Course)
 
 	cost = Column(Float)
+
+	def __init__(self,course=None,mentor=None,cost=None):
+		self.course = course
+		self.mentor = mentor
+		self.cost = None
+
+	def __repr__(self):
+		return '<Assignment assn_id=%r course=%r mentor=%r>' % (self.assn_id, self.course,self.mentor)
 
 ##--##
 

@@ -18,6 +18,7 @@ from flask import session, request, url_for, redirect, abort, flash
 
 from flaskext.genshi import render_response
 from flaskapp.globals import *
+from flaskapp import app
 
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
