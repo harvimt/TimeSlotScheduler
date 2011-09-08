@@ -24,7 +24,9 @@ from sqlalchemy.orm.exc import NoResultFound
 from database import db_session as sess
 from datamodel import Schedule
 
-@app.route('/')
+@app.route('/view_schedule')
 def view_schedule():
 	schedule = sess.query(Schedule).one()
+	#app.logger.debug(schedule.assignments)
+	return render_response('view_schedule.html', dict(assignments=schedule.assignments))
 
