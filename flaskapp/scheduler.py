@@ -119,7 +119,7 @@ class Scheduler(object):
 
 		assignments = sess.query(Assignment).all()
 		for assignment in assignments:
-			self.all_assns[(assignment.course,assignment.mentor)] = assignment
+			self.all_assns[(assignment.course_id,assignment.mentor_id)] = assignment
 
 		print_msg('Succesfully Calculated Scores')
 
@@ -134,25 +134,33 @@ class Scheduler(object):
 			(they won't be saved in the db)
 		"""
 		print_msg('Starting to perform Pre-Assignment')
-		courses_w_preassn = sess.query(Course).filter(Course.pre_assn_mentor_odin != None).all()
+		#courses_w_preassn = sess.query(Course).filter(Course.pre_assn_mentor_odin != None).all()
+		courses_w_preassn = filter(lambda x: x.pre_assn_mentor_odin is not None, self.courses)
 
 
 		for mentor in self.mentors:
 			mentor.adj_min_slots = mentor.min_slots
 			mentor.adj_max_slots = mentor.max_slots
 
+		count = 0
 		for course in courses_w_preassn:
-			mentor = sess.query(Mentor).filter_by(odin_id=course.pre_assn_mentor_odin).one()
+			#mentor = sess.query(Mentor).filter_by(odin_id=course.pre_assn_mentor_odin).one()
+			mentor = filter(lambda x: x.odin_id == course.pre_assn_mentor_odin,self.mentors)[0]
+
 			mentor.adj_min_slots = max(0, mentor.adj_min_slots - 1)
 			mentor.adj_max_slots = max(0, mentor.adj_max_slots - 1)
 			course.pre_assn_mentor = mentor
-			assn = sess.query(Assignment).filter_by(mentor=mentor,course=course).one()
+
+			assn = self.get_assn(course,mentor)
+			assert(assn.assn_id is not None and assn.mentor is not None and assn.course is not None)
+
 			self.pre_assns.append(assn)
 			self.unassned_courses.discard(course)
+			count += 1
 
 		sess.commit()
 
-		print_msg('Successfully performed Pre-Assignment')
+		print_msg('Successfully performed %d Pre-Assignments' % count)
 	
 	def calc_mentor_slots(self):
 		"""
@@ -174,11 +182,16 @@ class Scheduler(object):
 
 	## Utility -- get assignment object from course,mentor tuple None/NO_ASSIGNMENT safe
 	def get_assn(self,course,mentor):
-		if (course, mentor) in self.all_assns:
-			return self.all_assns[course,mentor]
+		course_id = course.course_id if course else None
+		mentor_id = mentor.mentor_id if mentor else None
+
+		if (course_id, mentor_id) in self.all_assns:
+			return self.all_assns[course_id,mentor_id]
 		else:
+			assert(course is None or mentor is None)
+
 			assn = Assignment(course,mentor,cost=0)
-			self.all_assns[course,mentor] = assn
+			self.all_assns[course_id,mentor_id] = assn
 			return assn
 
 	## Utility -- is assignment valid
@@ -227,7 +240,7 @@ class Scheduler(object):
 		print_msg('Started Assigning mentors to required slots -- swap assignments')
 
 		if len(self.req_assns) > 1:
-			max_swaps=10 #TODO make parameter
+			max_swaps=50000 #TODO make parameter
 			swaps=0
 
 			cur_best_cost = self.req_best_cost
@@ -318,19 +331,26 @@ class Scheduler(object):
 
 		#remove placeholder assignments
 		self.unassned_courses = set()
-		for assn in self.req_assns:
+		new_req_assns = []
+		for i,assn in enumerate(self.req_assns):
 			if assn.mentor is None:
 				#print_msg('assn=%r' % assn)
-				self.req_assns.remove(assn)
+				#self.req_assns.remove(assn)
 				self.unassned_courses.add(assn.course)
+			else:
+				new_req_assns.append(assn)
+
+		self.req_assns = new_req_assns
 
 		#calculate unassned_courses
 
-		print_msg('Started Assigning mentors to required slots -- swap assignments')
+		print_msg('Finished Assigning mentors to required slots -- swap assignments')
 
 	def assn_add_slots_initial(self):
 		#note mentors >= courses
 		print_msg('Started Assigning mentors to additional slots -- initial')
+		#print_msg('unassigned_courses.len=%r'%len(self.unassned_courses))
+		#print_msg('unassigned_courses=%r' % self.unassned_courses)
 
 		for slot in self.add_mentor_slots:
 			found_course = False
@@ -340,6 +360,7 @@ class Scheduler(object):
 				assert(assn.cost is not None)
 
 				if self.assn_valid(self.add_assns, assn):
+					#print_msg('ASSN Found')
 					self.add_assns.append(assn)
 					self.unassned_courses.discard(course)
 					self.add_best_cost += assn.cost
@@ -349,6 +370,8 @@ class Scheduler(object):
 			if not found_course:
 				#print_msg('no course found for assn')
 				assn = self.get_assn(None,slot.mentor)
+
+		print_msg('unassigned_courses.len=%r'%len(self.unassned_courses))
 
 		assert(not self.unassned_courses)
 		print_msg('Finished Assigning mentors to additional slots -- initial')
@@ -361,10 +384,12 @@ class Scheduler(object):
 			pass #TODO
 
 		#remove placeholder assignments
-		for assn in self.add_assns:
-			if assn.course is None:
-				#print_msg('assn=%r' % assn)
-				self.add_assns.remove(assn)
+		new_req_assns = []
+		for i,assn in enumerate(self.req_assns):
+			if assn.course is not None:
+				new_req_assns.append(assn)
+
+		self.req_assns = new_req_assns
 
 		print_msg('Finished Assigning mentors to additional slots -- swaps')
 
@@ -373,8 +398,24 @@ class Scheduler(object):
 
 		self.schedule.assignments = self.pre_assns + self.req_assns + self.add_assns
 
+		errors = []
+		for assn in self.req_assns:
+			#if assn.course is None:
+				#errors.append('%r missing course' % assn)
+
+			if assn.mentor is None:
+				errors.append('%r missing mentor' % assn)
+
+			#if assn.assn_id is None:
+				#errors.append('%r missing id' % assn)
+
+		if errors:
+			raise Exception('%r' % errors)
+
 		sess.add(self.schedule)
 		sess.commit()
+
+		#assert(not any(map(lambda x: x.course is None or x.mentor is None, )))
 
 		assert(len(list(self.schedule.assignments)) == len(self.courses))
 
