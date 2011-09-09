@@ -28,6 +28,7 @@ View A Schedule
 					<th>Theme</th>
 					<th>Faculty</th>
 					<th>Mentor</th>
+					<th>Cost</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -37,6 +38,7 @@ View A Schedule
 					<td>${prefs.Theme}</td>
 					<td>${prefs.Faculty}</td>
 					<td>${assn.mentor.full_name if assn.mentor else 'NO MENTOR'}</td>
+					<td>${assn.cost}</td>
 				</tr>
 			</tbody>
 		</table>

@@ -194,6 +194,8 @@ class Mentor(Base):
 
 		return groups.values()
 
+	def get_choice_from_type(self,pref_type):
+
 ##--##
 
 class Choice(Base):

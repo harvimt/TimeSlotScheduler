@@ -22,7 +22,7 @@ from flaskapp.globals import *
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
 from database import db_session as sess
-from datamodel import Schedule
+from datamodel import Schedule, PrefType
 from StringIO import StringIO
 
 @app.route('/view_schedule')
@@ -58,28 +58,51 @@ def view_schedule_as_csv():
 	w_file = StringIO()
 	gen_csv(w_file)
 	w_file.seek(0) #rewind to beginning
-	return send_file(w_file, 'text/csv', as_attachment=False, attachment_filename='schedule.csv')
-	#return send_file(w_file, 'text/plain')
+	#return send_file(w_file, 'text/csv', as_attachment=False, attachment_filename='schedule.csv')
+	return send_file(w_file, 'text/plain')
 
 def gen_csv(w_file):
 	schedule = sess.query(Schedule).one()
 	assignments = schedule.assignments
+	pref_types = sess.query(PrefType).all()
 
 	#Calculate statistics
 	total_cost = sum(map(lambda x: x.cost, assignments))
 	avg_cost = total_cost/len(assignments)
 
 	writer = csv.writer(w_file)
-	writer.writerow(('CRN','Time','Theme','Faculty','Mentor'))
+
+	pref_names = []
+	for pref_type in pref_types:
+		pref_names.append(pref_type.name + " Weight Cost")
+		pref_names.append(pref_type.name + " Weight Index")
+
+	writer.writerow(('CRN','Time','Theme','Faculty','Mentor','Cost')+pref_names)
+
 	for assn in assignments:
 		prefs = assn.course.prefs_as_dict()
+		extra_cols = []
+		for pref_type in pref_types:
+			choice = assn.mentor.getChoiceByType(pref_type)
+
+			if choice:
+				weight_num = str(choice.weight.weight_num)
+				weight_val = '%.2f' % choice.weight.weight_val
+			else:
+				weight_num = 'N/A'
+				weight_val = 0
+
+			extra_cols.append(weight_val)
+			extra_cols.append(weight_num)
+
 		writer.writerow((
 			assn.course.crn,
 			prefs['Time'],
 			prefs['Theme'],
 			prefs['Faculty'],
-			assn.mentor.full_name
-		))
+			assn.mentor.full_name,
+			'%.2f' % assn.cost
+		) + extra_cols)
 
 	writer.writerow([])
 	writer.writerow(('Total Cost', total_cost))
