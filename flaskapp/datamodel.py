@@ -194,7 +194,12 @@ class Mentor(Base):
 
 		return groups.values()
 
-	def get_choice_from_type(self,pref_type):
+	def get_choice_by_course_and_pref_type(self,pref_type,course):
+		for choice in self.choices:
+			if choice.pref.pref_type == pref_type:
+				for pref in course.prefs:
+					if pref == choice.pref:
+						return choice
 
 ##--##
 

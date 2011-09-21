@@ -77,32 +77,32 @@ def gen_csv(w_file):
 		pref_names.append(pref_type.name + " Weight Cost")
 		pref_names.append(pref_type.name + " Weight Index")
 
-	writer.writerow(('CRN','Time','Theme','Faculty','Mentor','Cost')+pref_names)
+	writer.writerow(['CRN','Time','Theme','Faculty','Mentor','Cost']+pref_names)
 
 	for assn in assignments:
 		prefs = assn.course.prefs_as_dict()
 		extra_cols = []
 		for pref_type in pref_types:
-			choice = assn.mentor.getChoiceByType(pref_type)
+			choice = assn.mentor.get_choice_by_course_and_pref_type(pref_type,assn.course)
 
-			if choice:
+			if choice and choice.weight:
 				weight_num = str(choice.weight.weight_num)
-				weight_val = '%.2f' % choice.weight.weight_val
+				weight_value = '%.2f' % choice.weight.weight_value
 			else:
 				weight_num = 'N/A'
-				weight_val = 0
+				weight_value = pref_type.def_weight_val
 
-			extra_cols.append(weight_val)
+			extra_cols.append(weight_value)
 			extra_cols.append(weight_num)
 
-		writer.writerow((
+		writer.writerow([
 			assn.course.crn,
 			prefs['Time'],
 			prefs['Theme'],
 			prefs['Faculty'],
 			assn.mentor.full_name,
 			'%.2f' % assn.cost
-		) + extra_cols)
+		] + extra_cols)
 
 	writer.writerow([])
 	writer.writerow(('Total Cost', total_cost))
